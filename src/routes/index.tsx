@@ -435,9 +435,11 @@ function ReturnsTrackerPage() {
                   <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
                   <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
                   <Th onClick={() => toggleSort("storeName")}>Store</Th>
+                  <Th>Product</Th>
                   <Th>Bundle</Th>
                   <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
                   <Th onClick={() => toggleSort("status")}>Status</Th>
+                  <Th>Credit</Th>
                   <Th onClick={() => toggleSort("date")}>Date</Th>
                   <Th>Notes</Th>
                   <th className="px-3 py-2.5 w-[110px]" />
@@ -446,7 +448,7 @@ function ReturnsTrackerPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={11}>
+                    <td colSpan={13}>
                       <div className="py-14 text-center text-muted-foreground">
                         <PackageOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
                         <p className="text-foreground font-medium mb-1">
