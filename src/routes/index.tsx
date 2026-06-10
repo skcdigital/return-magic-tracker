@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Returns Tracker — Omni Technical Solutions" },
+      { title: "Returns Tracker — Suzan Kwinika" },
       {
         name: "description",
         content:
@@ -58,6 +58,8 @@ export const Route = createFileRoute("/")({
 type RefType = "RFC" | "GRS" | "GRN";
 type Status = "completed" | "started" | "pending";
 type Bundle = "yes" | "partial" | "no";
+type ProductType = "laptop" | "printer";
+type CreditStatus = "supplier_credit" | "unit_on_hand";
 
 interface ReturnEntry {
   id: string;
@@ -66,15 +68,32 @@ interface ReturnEntry {
   jobNumber: string;
   serialNumber: string;
   storeName: string;
+  productType: ProductType;
   bundle: Bundle;
   unitLocation: string;
   date: string; // yyyy-MM-dd
   status: Status;
+  creditStatus: CreditStatus;
+  creditNoteNumber: string;
   notes: string;
   createdAt: number;
 }
 
-const STORAGE_KEY = "omni.returns.tracker.v1";
+const STORAGE_KEY = "suzan.returns.tracker.v1";
+
+const RETAILERS = [
+  "OK Furniture",
+  "Lewis Stores",
+  "Beares",
+  "Pick n Pay",
+  "Checkers",
+  "Makro",
+  "Game",
+  "Russells",
+  "Bradlows",
+  "Hi-Fi Corp",
+  "Incredible Connection",
+];
 
 const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   refType: "RFC",
@@ -82,10 +101,13 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   jobNumber: "",
   serialNumber: "",
   storeName: "",
+  productType: "laptop",
   bundle: "no",
   unitLocation: "",
   date: format(new Date(), "yyyy-MM-dd"),
   status: "pending",
+  creditStatus: "unit_on_hand",
+  creditNoteNumber: "",
   notes: "",
 });
 
@@ -238,10 +260,13 @@ function ReturnsTrackerPage() {
       jobNumber: r.jobNumber,
       serialNumber: r.serialNumber,
       storeName: r.storeName,
+      productType: r.productType ?? "laptop",
       bundle: r.bundle,
       unitLocation: r.unitLocation,
       date: r.date,
       status: r.status,
+      creditStatus: r.creditStatus ?? "unit_on_hand",
+      creditNoteNumber: r.creditNoteNumber ?? "",
       notes: r.notes,
     });
     setModalOpen(true);
@@ -277,10 +302,13 @@ function ReturnsTrackerPage() {
       "Job Number",
       "Serial Number",
       "Store",
+      "Product",
       "Bundle",
       "Location",
       "Date",
       "Status",
+      "Credit Status",
+      "Credit Note No.",
       "Notes",
     ];
     const rows = data.map((r) =>
@@ -290,10 +318,13 @@ function ReturnsTrackerPage() {
         r.jobNumber,
         r.serialNumber,
         r.storeName,
+        r.productType,
         r.bundle,
         r.unitLocation,
         r.date,
         r.status,
+        r.creditStatus === "supplier_credit" ? "Supplier credit" : "Unit on hand",
+        r.creditNoteNumber,
         r.notes,
       ]
         .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
@@ -323,7 +354,7 @@ function ReturnsTrackerPage() {
             <div>
               <h1 className="text-[18px] font-semibold tracking-tight">Returns Tracker</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Omni Technical Solutions · RFC / GRS / GRN retail credit returns
+                Suzan Kwinika · RFC / GRS / GRN retail credit returns
               </p>
             </div>
           </div>
@@ -404,9 +435,11 @@ function ReturnsTrackerPage() {
                   <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
                   <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
                   <Th onClick={() => toggleSort("storeName")}>Store</Th>
+                  <Th>Product</Th>
                   <Th>Bundle</Th>
                   <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
                   <Th onClick={() => toggleSort("status")}>Status</Th>
+                  <Th>Credit</Th>
                   <Th onClick={() => toggleSort("date")}>Date</Th>
                   <Th>Notes</Th>
                   <th className="px-3 py-2.5 w-[110px]" />
@@ -415,7 +448,7 @@ function ReturnsTrackerPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={11}>
+                    <td colSpan={13}>
                       <div className="py-14 text-center text-muted-foreground">
                         <PackageOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
                         <p className="text-foreground font-medium mb-1">
@@ -450,6 +483,18 @@ function ReturnsTrackerPage() {
                       </td>
                       <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
                       <td className="px-3.5 py-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                            r.productType === "printer"
+                              ? "bg-violet-50 text-violet-700 ring-violet-200"
+                              : "bg-sky-50 text-sky-700 ring-sky-200",
+                          )}
+                        >
+                          {r.productType === "printer" ? "Printer" : "Laptop"}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-2.5">
                         <BundleCell value={r.bundle} />
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground" title={r.unitLocation}>
@@ -457,6 +502,18 @@ function ReturnsTrackerPage() {
                       </td>
                       <td className="px-3.5 py-2.5">
                         <StatusBadge status={r.status} />
+                      </td>
+                      <td className="px-3.5 py-2.5 text-xs">
+                        {r.creditStatus === "supplier_credit" ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-emerald-700">Supplier credit</span>
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                              {r.creditNoteNumber || "— no CN —"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-slate-700">Unit on hand</span>
+                        )}
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                         {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
@@ -533,12 +590,48 @@ function ReturnsTrackerPage() {
                 placeholder="e.g. SN7812345600"
               />
             </Field>
-            <Field label="Store Name" className="sm:col-span-2">
-              <Input
-                value={form.storeName}
-                onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
-                placeholder="e.g. Makro Silverton"
-              />
+            <Field label="Retailer" className="sm:col-span-2">
+              <div className="flex flex-col gap-2">
+                <Select
+                  value={RETAILERS.includes(form.storeName) ? form.storeName : "__custom"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select retailer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RETAILERS.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom">Other (type below)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {!RETAILERS.includes(form.storeName) && (
+                  <Input
+                    value={form.storeName}
+                    onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                    placeholder="Store name / branch (e.g. OK Furniture Soweto)"
+                  />
+                )}
+              </div>
+            </Field>
+            <Field label="Product Type">
+              <Select
+                value={form.productType}
+                onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="laptop">Laptop</SelectItem>
+                  <SelectItem value="printer">Printer</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Bundle Received?">
               <Select
@@ -607,6 +700,37 @@ function ReturnsTrackerPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Credit Status" className="sm:col-span-2">
+              <Select
+                value={form.creditStatus}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    creditStatus: v as CreditStatus,
+                    creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unit_on_hand">Unit on hand (physical unit with us)</SelectItem>
+                  <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            {form.creditStatus === "supplier_credit" && (
+              <Field label="Credit Note Number *" className="sm:col-span-2">
+                <Input
+                  value={form.creditNoteNumber}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))
+                  }
+                  placeholder="e.g. CN-2024-00872"
+                />
+              </Field>
+            )}
             <Field label="Notes" className="sm:col-span-2">
               <Textarea
                 value={form.notes}
