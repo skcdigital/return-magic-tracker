@@ -354,7 +354,7 @@ function ReturnsTrackerPage() {
             <div>
               <h1 className="text-[18px] font-semibold tracking-tight">Returns Tracker</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Omni Technical Solutions · RFC / GRS / GRN retail credit returns
+                Suzan Kwinika · RFC / GRS / GRN retail credit returns
               </p>
             </div>
           </div>
