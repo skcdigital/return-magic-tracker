@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Returns Tracker — Omni Technical Solutions" },
+      { title: "Returns Tracker — Suzan Kwinika" },
       {
         name: "description",
         content:
@@ -58,6 +58,8 @@ export const Route = createFileRoute("/")({
 type RefType = "RFC" | "GRS" | "GRN";
 type Status = "completed" | "started" | "pending";
 type Bundle = "yes" | "partial" | "no";
+type ProductType = "laptop" | "printer";
+type CreditStatus = "supplier_credit" | "unit_on_hand";
 
 interface ReturnEntry {
   id: string;
@@ -66,15 +68,32 @@ interface ReturnEntry {
   jobNumber: string;
   serialNumber: string;
   storeName: string;
+  productType: ProductType;
   bundle: Bundle;
   unitLocation: string;
   date: string; // yyyy-MM-dd
   status: Status;
+  creditStatus: CreditStatus;
+  creditNoteNumber: string;
   notes: string;
   createdAt: number;
 }
 
-const STORAGE_KEY = "omni.returns.tracker.v1";
+const STORAGE_KEY = "suzan.returns.tracker.v1";
+
+const RETAILERS = [
+  "OK Furniture",
+  "Lewis Stores",
+  "Beares",
+  "Pick n Pay",
+  "Checkers",
+  "Makro",
+  "Game",
+  "Russells",
+  "Bradlows",
+  "Hi-Fi Corp",
+  "Incredible Connection",
+];
 
 const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   refType: "RFC",
@@ -82,10 +101,13 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   jobNumber: "",
   serialNumber: "",
   storeName: "",
+  productType: "laptop",
   bundle: "no",
   unitLocation: "",
   date: format(new Date(), "yyyy-MM-dd"),
   status: "pending",
+  creditStatus: "unit_on_hand",
+  creditNoteNumber: "",
   notes: "",
 });
 
