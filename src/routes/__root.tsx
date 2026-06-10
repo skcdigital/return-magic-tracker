@@ -77,9 +77,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Returns Tracker — Omni Technical Solutions" },
+      { title: "Returns Tracker — Suzan Kwinika" },
       { name: "description", content: "Professional tracker for RFC, GRS and GRN retail credit returns." },
-      { property: "og:title", content: "Returns Tracker — Omni Technical Solutions" },
+      { property: "og:title", content: "Returns Tracker — Suzan Kwinika" },
       { property: "og:description", content: "Professional tracker for RFC, GRS and GRN retail credit returns." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
