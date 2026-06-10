@@ -145,8 +145,14 @@
     border-color: var(--color-border);
   }
 
-  body {
+  html, body {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
   }
 }
