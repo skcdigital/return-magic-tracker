@@ -483,6 +483,18 @@ function ReturnsTrackerPage() {
                       </td>
                       <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
                       <td className="px-3.5 py-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                            r.productType === "printer"
+                              ? "bg-violet-50 text-violet-700 ring-violet-200"
+                              : "bg-sky-50 text-sky-700 ring-sky-200",
+                          )}
+                        >
+                          {r.productType === "printer" ? "Printer" : "Laptop"}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-2.5">
                         <BundleCell value={r.bundle} />
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground" title={r.unitLocation}>
@@ -490,6 +502,18 @@ function ReturnsTrackerPage() {
                       </td>
                       <td className="px-3.5 py-2.5">
                         <StatusBadge status={r.status} />
+                      </td>
+                      <td className="px-3.5 py-2.5 text-xs">
+                        {r.creditStatus === "supplier_credit" ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-emerald-700">Supplier credit</span>
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                              {r.creditNoteNumber || "— no CN —"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-slate-700">Unit on hand</span>
+                        )}
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                         {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
