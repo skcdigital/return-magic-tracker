@@ -302,10 +302,13 @@ function ReturnsTrackerPage() {
       "Job Number",
       "Serial Number",
       "Store",
+      "Product",
       "Bundle",
       "Location",
       "Date",
       "Status",
+      "Credit Status",
+      "Credit Note No.",
       "Notes",
     ];
     const rows = data.map((r) =>
@@ -315,10 +318,13 @@ function ReturnsTrackerPage() {
         r.jobNumber,
         r.serialNumber,
         r.storeName,
+        r.productType,
         r.bundle,
         r.unitLocation,
         r.date,
         r.status,
+        r.creditStatus === "supplier_credit" ? "Supplier credit" : "Unit on hand",
+        r.creditNoteNumber,
         r.notes,
       ]
         .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
