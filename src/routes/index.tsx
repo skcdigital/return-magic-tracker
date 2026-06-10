@@ -590,12 +590,48 @@ function ReturnsTrackerPage() {
                 placeholder="e.g. SN7812345600"
               />
             </Field>
-            <Field label="Store Name" className="sm:col-span-2">
-              <Input
-                value={form.storeName}
-                onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
-                placeholder="e.g. Makro Silverton"
-              />
+            <Field label="Retailer" className="sm:col-span-2">
+              <div className="flex flex-col gap-2">
+                <Select
+                  value={RETAILERS.includes(form.storeName) ? form.storeName : "__custom"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select retailer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RETAILERS.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom">Other (type below)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {!RETAILERS.includes(form.storeName) && (
+                  <Input
+                    value={form.storeName}
+                    onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                    placeholder="Store name / branch (e.g. OK Furniture Soweto)"
+                  />
+                )}
+              </div>
+            </Field>
+            <Field label="Product Type">
+              <Select
+                value={form.productType}
+                onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="laptop">Laptop</SelectItem>
+                  <SelectItem value="printer">Printer</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="Bundle Received?">
               <Select
