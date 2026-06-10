@@ -700,6 +700,37 @@ function ReturnsTrackerPage() {
                 </SelectContent>
               </Select>
             </Field>
+            <Field label="Credit Status" className="sm:col-span-2">
+              <Select
+                value={form.creditStatus}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    creditStatus: v as CreditStatus,
+                    creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unit_on_hand">Unit on hand (physical unit with us)</SelectItem>
+                  <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            {form.creditStatus === "supplier_credit" && (
+              <Field label="Credit Note Number *" className="sm:col-span-2">
+                <Input
+                  value={form.creditNoteNumber}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))
+                  }
+                  placeholder="e.g. CN-2024-00872"
+                />
+              </Field>
+            )}
             <Field label="Notes" className="sm:col-span-2">
               <Textarea
                 value={form.notes}
