@@ -260,10 +260,13 @@ function ReturnsTrackerPage() {
       jobNumber: r.jobNumber,
       serialNumber: r.serialNumber,
       storeName: r.storeName,
+      productType: r.productType ?? "laptop",
       bundle: r.bundle,
       unitLocation: r.unitLocation,
       date: r.date,
       status: r.status,
+      creditStatus: r.creditStatus ?? "unit_on_hand",
+      creditNoteNumber: r.creditNoteNumber ?? "",
       notes: r.notes,
     });
     setModalOpen(true);
