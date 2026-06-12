@@ -51,7 +51,7 @@ function dbToEntry(row: Record<string, unknown>): ReturnEntry {
   };
 }
 
-function entryToDb(entry: Partial<ReturnEntry>): Record<string, unknown> {
+function entryToDb(entry: Partial<ReturnEntry>) {
   return {
     ref_type: entry.refType,
     ref_number: entry.refNumber,
@@ -66,7 +66,7 @@ function entryToDb(entry: Partial<ReturnEntry>): Record<string, unknown> {
     credit_status: entry.creditStatus,
     credit_note_number: entry.creditNoteNumber,
     notes: entry.notes,
-  };
+  } as any;
 }
 
 export const listReturns = createServerFn({ method: "GET" }).handler(async () => {
