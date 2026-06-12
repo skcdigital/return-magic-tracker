@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      return_entries: {
+        Row: {
+          bundle: string
+          created_at: string
+          credit_note_number: string | null
+          credit_status: string
+          date: string
+          id: string
+          job_number: string | null
+          notes: string | null
+          product_type: string
+          ref_number: string
+          ref_type: string
+          serial_number: string | null
+          status: string
+          store_name: string | null
+          unit_location: string | null
+        }
+        Insert: {
+          bundle?: string
+          created_at?: string
+          credit_note_number?: string | null
+          credit_status?: string
+          date: string
+          id?: string
+          job_number?: string | null
+          notes?: string | null
+          product_type?: string
+          ref_number: string
+          ref_type: string
+          serial_number?: string | null
+          status?: string
+          store_name?: string | null
+          unit_location?: string | null
+        }
+        Update: {
+          bundle?: string
+          created_at?: string
+          credit_note_number?: string | null
+          credit_status?: string
+          date?: string
+          id?: string
+          job_number?: string | null
+          notes?: string | null
+          product_type?: string
+          ref_number?: string
+          ref_type?: string
+          serial_number?: string | null
+          status?: string
+          store_name?: string | null
+          unit_location?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
