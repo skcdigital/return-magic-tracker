@@ -64,8 +64,6 @@ function dbToEntry(row: Record<string, unknown>): ReturnEntry {
     createdAt: String(row.created_at ?? ""),
   };
 }
-  };
-}
 
 function entryToDb(entry: Partial<ReturnEntry>) {
   return {
