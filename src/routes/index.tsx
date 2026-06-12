@@ -131,9 +131,7 @@ function ProductTypeCell({ value }: { value: ProductType }) {
   const config: Record<ProductType, { label: string; color: string }> = {
     laptop: { label: "Laptop", color: "bg-sky-50 text-sky-700 ring-sky-200" },
     printer: { label: "Printer", color: "bg-violet-50 text-violet-700 ring-violet-200" },
-    flash_driver: { label: "Flash Driver", color: "bg-amber-50 text-amber-700 ring-amber-200" },
-    ssd: { label: "SSD", color: "bg-orange-50 text-orange-700 ring-orange-200" },
-    sd_card: { label: "SD Card", color: "bg-rose-50 text-rose-700 ring-rose-200" },
+    rma: { label: "RMA", color: "bg-amber-50 text-amber-700 ring-amber-200" },
   };
   const { label, color } = config[value] || config.laptop;
   return (
@@ -412,9 +410,7 @@ function ReturnsTrackerPage() {
     byProduct: {
       laptop: data.filter((d) => d.productType === "laptop").length,
       printer: data.filter((d) => d.productType === "printer").length,
-      flash_driver: data.filter((d) => d.productType === "flash_driver").length,
-      ssd: data.filter((d) => d.productType === "ssd").length,
-      sd_card: data.filter((d) => d.productType === "sd_card").length,
+      rma: data.filter((d) => d.productType === "rma").length,
     },
     bundleIssues: data.filter((d) => d.bundle === "no" || d.bundle === "partial").length,
   }), [data]);
@@ -456,9 +452,7 @@ function ReturnsTrackerPage() {
     const productLabels: Record<ProductType, string> = {
       laptop: "Laptop",
       printer: "Printer",
-      flash_driver: "Flash Driver",
-      ssd: "SSD",
-      sd_card: "SD Card",
+      rma: "RMA",
     };
     const rows = filtered.map((r) => ({
       Type: r.refType,
@@ -559,9 +553,7 @@ function ReturnsTrackerPage() {
       ["PRODUCT BREAKDOWN", "", "Count"],
       ["Laptops", "", filtered.filter(d => d.productType === "laptop").length],
       ["Printers", "", filtered.filter(d => d.productType === "printer").length],
-      ["Flash Drivers", "", filtered.filter(d => d.productType === "flash_driver").length],
-      ["SSDs", "", filtered.filter(d => d.productType === "ssd").length],
-      ["SD Cards", "", filtered.filter(d => d.productType === "sd_card").length],
+      ["RMA", "", filtered.filter(d => d.productType === "rma").length],
       ["", "", ""],
       ["BUNDLE STATUS", "", "Count"],
       ["Full Bundle", "", filtered.filter(d => d.bundle === "yes").length],
@@ -731,16 +723,8 @@ function ReturnsTrackerPage() {
                 <span className="text-sm font-semibold">{stats.byProduct.printer}</span>
               </div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-amber-700">Flash Driver</span>
-                <span className="text-sm font-semibold">{stats.byProduct.flash_driver}</span>
-              </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-orange-700">SSD</span>
-                <span className="text-sm font-semibold">{stats.byProduct.ssd}</span>
-              </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-rose-700">SD Card</span>
-                <span className="text-sm font-semibold">{stats.byProduct.sd_card}</span>
+                <span className="text-xs font-semibold text-amber-700">RMA</span>
+                <span className="text-sm font-semibold">{stats.byProduct.rma}</span>
               </div>
             </div>
             <div>
@@ -955,9 +939,7 @@ function ReturnsTrackerPage() {
                 <SelectContent>
                   <SelectItem value="laptop">Laptop</SelectItem>
                   <SelectItem value="printer">Printer</SelectItem>
-                  <SelectItem value="flash_driver">Flash Driver</SelectItem>
-                  <SelectItem value="ssd">SSD</SelectItem>
-                  <SelectItem value="sd_card">SD Card</SelectItem>
+                  <SelectItem value="rma">RMA (Flash Driver, SSD, SD Card, etc)</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
