@@ -200,6 +200,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -276,7 +277,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-muted/50 border-b">
                 <tr className="text-left">
-                  {["Type","Reference","Job No.","Serial No.","Store","Product","Bundle","Location","Status","Credit","Date","Notes"].map(h => (
+                  {["Type","Reference","Job No.","Serial No.","Store","Product","Bundle","Location","Status","Credit","Date","Notes","Images"].map(h => (
                     <th key={h} className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -309,10 +310,30 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                       {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                     </td>
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes || "—"}</td>
+                    <td className="px-3.5 py-2.5 text-xs">
+                      <div className="flex gap-1">
+                        {r.grsRfcGrnImageUrl && (
+                          <button
+                            onClick={() => setImageModal({ url: r.grsRfcGrnImageUrl, label: "GRS/RFC/GRN Document" })}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-[11px] cursor-pointer transition-colors"
+                          >
+                            📄 GRS/RFC/GRN
+                          </button>
+                        )}
+                        {r.supplierCreditImageUrl && (
+                          <button
+                            onClick={() => setImageModal({ url: r.supplierCreditImageUrl, label: "Supplier Credit Note" })}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-semibold text-[11px] cursor-pointer transition-colors"
+                          >
+                            💳 Credit Note
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={12} className="py-14 text-center text-muted-foreground text-sm">No results found.</td></tr>
+                  <tr><td colSpan={13} className="py-14 text-center text-muted-foreground text-sm">No results found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -320,6 +341,32 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         </div>
         <p className="text-xs text-muted-foreground mt-4 text-center">Read-only view · Omni Technical Solutions</p>
       </div>
+
+      {/* Image Modal */}
+      {imageModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setImageModal(null)}
+        >
+          <div
+            className="bg-white rounded-lg max-w-2xl max-h-[80vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+              <h3 className="font-semibold text-sm">{imageModal.label}</h3>
+              <button
+                onClick={() => setImageModal(null)}
+                className="p-1 hover:bg-muted rounded transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-4">
+              <img src={imageModal.url} alt={imageModal.label} className="w-full max-h-[600px] object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
