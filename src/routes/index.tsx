@@ -379,8 +379,8 @@ function ReturnsTrackerPage() {
   const fetchDelete = useServerFn(deleteReturn);
 
   // Check for read-only mode via URL param ?view=readonly
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const isReadOnly = searchParams?.get("view") === "readonly";
+  const location = useSearch({ from: "/" }) as Record<string, string>;
+  const isReadOnly = location?.view === "readonly";
 
   const { data: listData, isLoading, isError } = useQuery({
     queryKey: ["returns"],
