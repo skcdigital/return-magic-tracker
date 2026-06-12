@@ -102,6 +102,8 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   creditStatus: "unit_on_hand",
   creditNoteNumber: "",
   notes: "",
+  grsRfcGrnImageUrl: "",
+  supplierCreditImageUrl: "",
 });
 
 const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: string }> = {
@@ -281,7 +283,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                  <tr key={r.id} className="border-b last:border-0 bg-card">
                     <td className="px-3.5 py-2.5">
                       <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{r.refType}</span>
                     </td>
@@ -994,6 +996,38 @@ function ReturnsTrackerPage() {
             {form.creditStatus === "supplier_credit" && (
               <Field label="Credit Note Number *" className="sm:col-span-2">
                 <Input value={form.creditNoteNumber} onChange={(e) => setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))} placeholder="e.g. CN-2024-00872" />
+              </Field>
+            )}
+            <Field label="GRS/RFC/GRN Document Image" className="sm:col-span-2">
+              <div className="flex flex-col gap-2">
+                <input type="file" accept="image/*" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      setForm((f) => ({ ...f, grsRfcGrnImageUrl: evt.target?.result as string }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
+                {form.grsRfcGrnImageUrl && <img src={form.grsRfcGrnImageUrl} alt="GRS/RFC/GRN" className="h-24 w-auto rounded border" />}
+              </div>
+            </Field>
+            {form.creditStatus === "supplier_credit" && (
+              <Field label="Supplier Credit Note Image" className="sm:col-span-2">
+                <div className="flex flex-col gap-2">
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        setForm((f) => ({ ...f, supplierCreditImageUrl: evt.target?.result as string }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
+                  {form.supplierCreditImageUrl && <img src={form.supplierCreditImageUrl} alt="Credit Note" className="h-24 w-auto rounded border" />}
+                </div>
               </Field>
             )}
             <Field label="Notes" className="sm:col-span-2">

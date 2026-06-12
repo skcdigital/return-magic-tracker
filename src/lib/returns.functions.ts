@@ -29,6 +29,8 @@ export interface ReturnEntry {
   creditStatus: CreditStatus;
   creditNoteNumber: string;
   notes: string;
+  grsRfcGrnImageUrl: string;
+  supplierCreditImageUrl: string;
   createdAt: string;
 }
 
@@ -57,7 +59,11 @@ function dbToEntry(row: Record<string, unknown>): ReturnEntry {
     creditStatus: String(row.credit_status ?? "unit_on_hand") as CreditStatus,
     creditNoteNumber: String(row.credit_note_number ?? ""),
     notes: String(row.notes ?? ""),
+    grsRfcGrnImageUrl: String(row.grs_rfc_grn_image_url ?? ""),
+    supplierCreditImageUrl: String(row.supplier_credit_image_url ?? ""),
     createdAt: String(row.created_at ?? ""),
+  };
+}
   };
 }
 
@@ -76,6 +82,8 @@ function entryToDb(entry: Partial<ReturnEntry>) {
     credit_status: entry.creditStatus,
     credit_note_number: entry.creditNoteNumber,
     notes: entry.notes,
+    grs_rfc_grn_image_url: entry.grsRfcGrnImageUrl,
+    supplier_credit_image_url: entry.supplierCreditImageUrl,
   } as any;
 }
 
