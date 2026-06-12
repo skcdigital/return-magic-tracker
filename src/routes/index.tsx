@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   PackageOpen,
   Plus,
@@ -8,16 +10,15 @@ import {
   Search,
   Pencil,
   Trash2,
-  Eye,
   X,
   CheckCircle2,
   PlayCircle,
   Clock,
-  AlertCircle,
+  AlertTriangle,
   Calendar as CalendarIcon,
   ArrowUpDown,
   Check,
-  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+import {
+  listReturns,
+  createReturn,
+  updateReturn,
+  deleteReturn,
+  type ReturnEntry,
+  type RefType,
+  type Status,
+  type Bundle,
+  type ProductType,
+  type CreditStatus,
+} from "@/lib/returns.functions";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -54,32 +68,6 @@ export const Route = createFileRoute("/")({
   }),
   component: ReturnsTrackerPage,
 });
-
-type RefType = "RFC" | "GRS" | "GRN";
-type Status = "completed" | "started" | "pending";
-type Bundle = "yes" | "partial" | "no";
-type ProductType = "laptop" | "printer";
-type CreditStatus = "supplier_credit" | "unit_on_hand";
-
-interface ReturnEntry {
-  id: string;
-  refType: RefType;
-  refNumber: string;
-  jobNumber: string;
-  serialNumber: string;
-  storeName: string;
-  productType: ProductType;
-  bundle: Bundle;
-  unitLocation: string;
-  date: string; // yyyy-MM-dd
-  status: Status;
-  creditStatus: CreditStatus;
-  creditNoteNumber: string;
-  notes: string;
-  createdAt: number;
-}
-
-const STORAGE_KEY = "suzan.returns.tracker.v1";
 
 const RETAILERS = [
   "OK Furniture",
@@ -170,8 +158,23 @@ type SortKey = keyof Pick<
 >;
 
 function ReturnsTrackerPage() {
-  const [data, setData] = useState<ReturnEntry[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const fetchList = useServerFn(listReturns);
+  const fetchCreate = useServerFn(createReturn);
+  const fetchUpdate = useServerFn(updateReturn);
+  const fetchDelete = useServerFn(deleteReturn);
+
+  const {
+    data: listData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["returns"],
+    queryFn: () => fetchList(),
+  });
+
+  const data = listData?.entries ?? [];
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -182,20 +185,29 @@ function ReturnsTrackerPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyEntry());
 
-  // Load from localStorage
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setData(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
-  }, []);
+  const createMutation = useMutation({
+    mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) =>
+      fetchCreate({ data: entry }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+      setModalOpen(false);
+    },
+  });
 
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data, hydrated]);
+  const updateMutation = useMutation({
+    mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: entry }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+      setModalOpen(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => fetchDelete({ data: { id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+    },
+  });
 
   const stores = useMemo(
     () => [...new Set(data.map((d) => d.storeName).filter(Boolean))].sort(),
@@ -275,23 +287,15 @@ function ReturnsTrackerPage() {
   function save() {
     if (!form.refNumber.trim()) return;
     if (editingId) {
-      setData((d) => d.map((x) => (x.id === editingId ? { ...x, ...form } : x)));
+      updateMutation.mutate({ ...form, id: editingId, createdAt: "" });
     } else {
-      setData((d) => [
-        {
-          ...form,
-          id: crypto.randomUUID(),
-          createdAt: Date.now(),
-        },
-        ...d,
-      ]);
+      createMutation.mutate(form);
     }
-    setModalOpen(false);
   }
 
   function remove(id: string) {
     if (confirm("Delete this return entry?")) {
-      setData((d) => d.filter((x) => x.id !== id));
+      deleteMutation.mutate(id);
     }
   }
 
@@ -341,6 +345,8 @@ function ReturnsTrackerPage() {
   }
 
   const formDate = form.date ? new Date(form.date + "T00:00:00") : undefined;
+
+  const isMutating = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background">
@@ -446,7 +452,26 @@ function ReturnsTrackerPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={13}>
+                      <div className="py-14 text-center text-muted-foreground">
+                        <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin opacity-40" />
+                        <p className="text-foreground font-medium">Loading returns…</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : isError ? (
+                  <tr>
+                    <td colSpan={13}>
+                      <div className="py-14 text-center text-muted-foreground">
+                        <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500 opacity-60" />
+                        <p className="text-foreground font-medium mb-1">Failed to load data</p>
+                        <span className="text-sm">Please refresh the page to try again.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
                   <tr>
                     <td colSpan={13}>
                       <div className="py-14 text-center text-muted-foreground">
@@ -543,7 +568,7 @@ function ReturnsTrackerPage() {
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 text-center">
-          Your data is saved locally in this browser.
+          Your data is saved to the cloud and will persist across sessions.
         </p>
       </div>
 
@@ -741,11 +766,16 @@ function ReturnsTrackerPage() {
             </Field>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isMutating}>
               Cancel
             </Button>
-            <Button onClick={save} disabled={!form.refNumber.trim()}>
-              <Check className="h-4 w-4" /> Save Return
+            <Button onClick={save} disabled={!form.refNumber.trim() || isMutating}>
+              {isMutating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              {isMutating ? "Saving…" : "Save Return"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -848,6 +878,3 @@ function Field({
     </div>
   );
 }
-
-// silence unused import warning
-void Eye;
