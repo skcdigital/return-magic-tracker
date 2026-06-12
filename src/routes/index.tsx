@@ -477,59 +477,161 @@ function ReturnsTrackerPage() {
     }));
     
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [8,16,14,18,20,10,14,18,12,12,16,16,30].map(w => ({ wch: w }));
+    ws["!cols"] = [8,16,14,18,20,12,14,16,12,12,16,16,30].map(w => ({ wch: w }));
+    ws["!freeze"] = { xSplit: 0, ySplit: 1 }; // Freeze header row
     
-    // Header styling
-    const headerRange = XLSX.utils.decode_range(ws["!ref"] || "A1");
-    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
-      const address = XLSX.utils.encode_col(C) + "1";
-      if (!ws[address]) continue;
-      ws[address].s = {
-        font: { bold: true, color: { rgb: "FFFFFF" } },
-        fill: { fgColor: { rgb: "1F2937" } },
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-      };
+    // Define border and center alignment for all cells
+    const borderStyle = { style: "thin", color: { rgb: "D1D5DB" } };
+    const headerStyle = {
+      font: { bold: true, color: { rgb: "FFFFFF" }, size: 11 },
+      fill: { fgColor: { rgb: "1F2937" } },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      border: { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle },
+    };
+    
+    // Status colors for cells
+    const statusColors: Record<string, string> = {
+      "Completed": "C6EFCE",
+      "Started": "FFEB9C",
+      "Pending": "FFC7CE",
+      "Missing": "FF6B6B",
+    };
+
+    // Apply formatting to all cells
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + (R + 1);
+        if (!ws[address]) continue;
+
+        if (R === 0) {
+          // Header row
+          ws[address].s = headerStyle;
+        } else {
+          // Data rows with alternating colors
+          const isAlternate = R % 2 === 0;
+          const cell = ws[address];
+          
+          // Get status value for conditional coloring
+          const statusCol = rows[R - 1]?.Status;
+          const statusBgColor = statusColors[statusCol];
+          
+          cell.s = {
+            font: { color: { rgb: "1F2937" }, size: 10 },
+            fill: statusBgColor 
+              ? { fgColor: { rgb: statusBgColor } }
+              : isAlternate 
+              ? { fgColor: { rgb: "F9FAFB" } }
+              : { fgColor: { rgb: "FFFFFF" } },
+            alignment: { horizontal: "left", vertical: "center", wrapText: true },
+            border: {
+              top: { style: "thin", color: { rgb: "E5E7EB" } },
+              bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+              left: { style: "thin", color: { rgb: "E5E7EB" } },
+              right: { style: "thin", color: { rgb: "E5E7EB" } },
+            },
+          };
+          
+          // Center align specific columns
+          if ([0, 4, 6, 9, 10].includes(C)) {
+            cell.s!.alignment = { horizontal: "center", vertical: "center", wrapText: true };
+          }
+        }
+      }
     }
 
-    // ─── Summary sheet ───
+    // ─── Summary sheet with professional formatting ───
+    const totalReturns = filtered.length;
     const summaryData = [
-      ["Returns Tracker Summary", "", ""],
-      ["Generated", format(new Date(), "dd MMM yyyy HH:mm"), ""],
-      [""],
-      ["Total Returns", filtered.length, ""],
-      ["Completed", filtered.filter(d => d.status === "completed").length, ""],
-      ["Started", filtered.filter(d => d.status === "started").length, ""],
-      ["Pending", filtered.filter(d => d.status === "pending").length, ""],
-      ["Missing", filtered.filter(d => d.status === "missing").length, ""],
-      [""],
-      ["Product Breakdown", "", ""],
-      ["Laptops", filtered.filter(d => d.productType === "laptop").length, ""],
-      ["Printers", filtered.filter(d => d.productType === "printer").length, ""],
-      ["Flash Drivers", filtered.filter(d => d.productType === "flash_driver").length, ""],
-      ["SSDs", filtered.filter(d => d.productType === "ssd").length, ""],
-      ["SD Cards", filtered.filter(d => d.productType === "sd_card").length, ""],
-      [""],
-      ["Bundle Status", "", ""],
-      ["Full Bundle", filtered.filter(d => d.bundle === "yes").length, ""],
-      ["Partial", filtered.filter(d => d.bundle === "partial").length, ""],
-      ["Standalone Laptop", filtered.filter(d => d.bundle === "standalone_laptop").length, ""],
-      ["None", filtered.filter(d => d.bundle === "no" || d.bundle === "none").length, ""],
-      [""],
-      ["Credit Status", "", ""],
-      ["Supplier Credit", filtered.filter(d => d.creditStatus === "supplier_credit").length, ""],
-      ["Unit on Hand", filtered.filter(d => d.creditStatus === "unit_on_hand").length, ""],
+      ["", "", ""],
+      ["RETURNS TRACKER SUMMARY", "", ""],
+      ["", "", ""],
+      ["Generated on", format(new Date(), "dd MMM yyyy HH:mm:ss"), ""],
+      ["Total Records", totalReturns, ""],
+      ["", "", ""],
+      ["STATUS BREAKDOWN", "", "Count"],
+      ["Completed", "", filtered.filter(d => d.status === "completed").length],
+      ["Started", "", filtered.filter(d => d.status === "started").length],
+      ["Pending", "", filtered.filter(d => d.status === "pending").length],
+      ["Missing", "", filtered.filter(d => d.status === "missing").length],
+      ["", "", ""],
+      ["PRODUCT BREAKDOWN", "", "Count"],
+      ["Laptops", "", filtered.filter(d => d.productType === "laptop").length],
+      ["Printers", "", filtered.filter(d => d.productType === "printer").length],
+      ["Flash Drivers", "", filtered.filter(d => d.productType === "flash_driver").length],
+      ["SSDs", "", filtered.filter(d => d.productType === "ssd").length],
+      ["SD Cards", "", filtered.filter(d => d.productType === "sd_card").length],
+      ["", "", ""],
+      ["BUNDLE STATUS", "", "Count"],
+      ["Full Bundle", "", filtered.filter(d => d.bundle === "yes").length],
+      ["Partial", "", filtered.filter(d => d.bundle === "partial").length],
+      ["Standalone Laptop", "", filtered.filter(d => d.bundle === "standalone_laptop").length],
+      ["None / No Bundle", "", filtered.filter(d => d.bundle === "no" || d.bundle === "none").length],
+      ["", "", ""],
+      ["CREDIT STATUS", "", "Count"],
+      ["Supplier Credit", "", filtered.filter(d => d.creditStatus === "supplier_credit").length],
+      ["Unit on Hand", "", filtered.filter(d => d.creditStatus === "unit_on_hand").length],
     ];
 
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    wsSummary["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }];
-    
-    // Summary styling
-    if (wsSummary["A1"]) {
-      wsSummary["A1"].s = {
-        font: { bold: true, size: 14, color: { rgb: "1F2937" } },
-      };
+    wsSummary["!cols"] = [{ wch: 28 }, { wch: 25 }, { wch: 12 }];
+
+    // Style summary sheet
+    const sectionColors: Record<string, string> = {
+      "STATUS BREAKDOWN": "3B82F6",
+      "PRODUCT BREAKDOWN": "8B5CF6",
+      "BUNDLE STATUS": "EC4899",
+      "CREDIT STATUS": "06B6D4",
+    };
+
+    for (let R = 0; R < summaryData.length; ++R) {
+      for (let C = 0; C < 3; ++C) {
+        const address = XLSX.utils.encode_col(C) + (R + 1);
+        if (!wsSummary[address]) continue;
+
+        const content = summaryData[R]?.[C]?.toString() || "";
+
+        // Main title
+        if (R === 1) {
+          wsSummary[address].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" }, size: 16 },
+            fill: { fgColor: { rgb: "1F2937" } },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: { bottom: { style: "medium", color: { rgb: "1F2937" } } },
+          };
+        }
+        // Section headers
+        else if (Object.keys(sectionColors).includes(content)) {
+          const color = sectionColors[content];
+          wsSummary[address].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" }, size: 12 },
+            fill: { fgColor: { rgb: color } },
+            alignment: { horizontal: "left", vertical: "center" },
+          };
+        }
+        // Data rows under sections
+        else if (content && !["Generated on", "Total Records"].includes(content)) {
+          const isNumber = !isNaN(Number(content));
+          wsSummary[address].s = {
+            font: { color: { rgb: "374151" }, size: 11 },
+            fill: { fgColor: { rgb: "F3F4F6" } },
+            alignment: { horizontal: isNumber ? "right" : "left", vertical: "center" },
+            border: { bottom: { style: "thin", color: { rgb: "D1D5DB" } } },
+            numFmt: isNumber ? "0" : "@",
+          };
+        }
+        // Header info
+        else if (["Generated on", "Total Records"].includes(content)) {
+          wsSummary[address].s = {
+            font: { bold: true, color: { rgb: "1F2937" }, size: 11 },
+            fill: { fgColor: { rgb: "E5E7EB" } },
+            alignment: { horizontal: "left", vertical: "center" },
+          };
+        }
+      }
     }
-    
+
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
     XLSX.utils.book_append_sheet(wb, ws, "Returns");
     
