@@ -5,7 +5,7 @@ import { z } from "zod";
 const RefTypeSchema = z.enum(["RFC", "GRS", "GRN"]);
 const StatusSchema = z.enum(["completed", "started", "pending", "missing"]);
 const BundleSchema = z.enum(["yes", "partial", "no", "standalone_laptop", "none"]);
-const ProductTypeSchema = z.enum(["laptop", "printer"]);
+const ProductTypeSchema = z.enum(["laptop", "printer", "flash_driver", "ssd", "sd_card"]);
 const CreditStatusSchema = z.enum(["supplier_credit", "unit_on_hand"]);
 
 export type RefType = z.infer<typeof RefTypeSchema>;

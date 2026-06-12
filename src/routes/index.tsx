@@ -127,6 +127,22 @@ const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: stri
   },
 };
 
+function ProductTypeCell({ value }: { value: ProductType }) {
+  const config: Record<ProductType, { label: string; color: string }> = {
+    laptop: { label: "Laptop", color: "bg-sky-50 text-sky-700 ring-sky-200" },
+    printer: { label: "Printer", color: "bg-violet-50 text-violet-700 ring-violet-200" },
+    flash_driver: { label: "Flash Driver", color: "bg-amber-50 text-amber-700 ring-amber-200" },
+    ssd: { label: "SSD", color: "bg-orange-50 text-orange-700 ring-orange-200" },
+    sd_card: { label: "SD Card", color: "bg-rose-50 text-rose-700 ring-rose-200" },
+  };
+  const { label, color } = config[value] || config.laptop;
+  return (
+    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset", color)}>
+      {label}
+    </span>
+  );
+}
+
 function BundleCell({ value }: { value: Bundle }) {
   if (value === "yes")
     return (
@@ -275,11 +291,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.jobNumber || "—"}</td>
                     <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.serialNumber || "—"}</td>
                     <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
-                    <td className="px-3.5 py-2.5">
-                      <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset", r.productType === "printer" ? "bg-violet-50 text-violet-700 ring-violet-200" : "bg-sky-50 text-sky-700 ring-sky-200")}>
-                        {r.productType === "printer" ? "Printer" : "Laptop"}
-                      </span>
-                    </td>
+                    <td className="px-3.5 py-2.5"><ProductTypeCell value={r.productType} /></td>
                     <td className="px-3.5 py-2.5"><BundleCell value={r.bundle} /></td>
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground">{r.unitLocation || "—"}</td>
                     <td className="px-3.5 py-2.5"><StatusBadge status={r.status} /></td>
@@ -400,6 +412,9 @@ function ReturnsTrackerPage() {
     byProduct: {
       laptop: data.filter((d) => d.productType === "laptop").length,
       printer: data.filter((d) => d.productType === "printer").length,
+      flash_driver: data.filter((d) => d.productType === "flash_driver").length,
+      ssd: data.filter((d) => d.productType === "ssd").length,
+      sd_card: data.filter((d) => d.productType === "sd_card").length,
     },
     bundleIssues: data.filter((d) => d.bundle === "no" || d.bundle === "partial").length,
   }), [data]);
@@ -438,13 +453,20 @@ function ReturnsTrackerPage() {
     const wb = XLSX.utils.book_new();
 
     // ─── Data sheet ───
+    const productLabels: Record<ProductType, string> = {
+      laptop: "Laptop",
+      printer: "Printer",
+      flash_driver: "Flash Driver",
+      ssd: "SSD",
+      sd_card: "SD Card",
+    };
     const rows = filtered.map((r) => ({
       Type: r.refType,
       Reference: r.refNumber,
       "Job Number": r.jobNumber,
       "Serial Number": r.serialNumber,
       Store: r.storeName,
-      Product: r.productType === "printer" ? "Printer" : "Laptop",
+      Product: productLabels[r.productType] || "Unknown",
       Bundle: r.bundle === "yes" ? "Yes" : r.bundle === "partial" ? "Partial" : r.bundle === "standalone_laptop" ? "Standalone Laptop" : "None",
       Location: r.unitLocation,
       Date: r.date,
@@ -483,6 +505,9 @@ function ReturnsTrackerPage() {
       ["Product Breakdown", "", ""],
       ["Laptops", filtered.filter(d => d.productType === "laptop").length, ""],
       ["Printers", filtered.filter(d => d.productType === "printer").length, ""],
+      ["Flash Drivers", filtered.filter(d => d.productType === "flash_driver").length, ""],
+      ["SSDs", filtered.filter(d => d.productType === "ssd").length, ""],
+      ["SD Cards", filtered.filter(d => d.productType === "sd_card").length, ""],
       [""],
       ["Bundle Status", "", ""],
       ["Full Bundle", filtered.filter(d => d.bundle === "yes").length, ""],
@@ -603,6 +628,18 @@ function ReturnsTrackerPage() {
                 <span className="text-xs font-semibold text-violet-700">Printer</span>
                 <span className="text-sm font-semibold">{stats.byProduct.printer}</span>
               </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-amber-700">Flash Driver</span>
+                <span className="text-sm font-semibold">{stats.byProduct.flash_driver}</span>
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-orange-700">SSD</span>
+                <span className="text-sm font-semibold">{stats.byProduct.ssd}</span>
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-rose-700">SD Card</span>
+                <span className="text-sm font-semibold">{stats.byProduct.sd_card}</span>
+              </div>
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bundle Issues</p>
@@ -719,11 +756,7 @@ function ReturnsTrackerPage() {
                       <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.jobNumber || "—"}</td>
                       <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.serialNumber || "—"}</td>
                       <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
-                      <td className="px-3.5 py-2.5">
-                        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset", r.productType === "printer" ? "bg-violet-50 text-violet-700 ring-violet-200" : "bg-sky-50 text-sky-700 ring-sky-200")}>
-                          {r.productType === "printer" ? "Printer" : "Laptop"}
-                        </span>
-                      </td>
+                      <td className="px-3.5 py-2.5"><ProductTypeCell value={r.productType} /></td>
                       <td className="px-3.5 py-2.5"><BundleCell value={r.bundle} /></td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground" title={r.unitLocation}>{r.unitLocation || "—"}</td>
                       <td className="px-3.5 py-2.5"><StatusBadge status={r.status} /></td>
@@ -820,6 +853,9 @@ function ReturnsTrackerPage() {
                 <SelectContent>
                   <SelectItem value="laptop">Laptop</SelectItem>
                   <SelectItem value="printer">Printer</SelectItem>
+                  <SelectItem value="flash_driver">Flash Driver</SelectItem>
+                  <SelectItem value="ssd">SSD</SelectItem>
+                  <SelectItem value="sd_card">SD Card</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
