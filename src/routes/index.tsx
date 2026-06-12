@@ -342,30 +342,54 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         <p className="text-xs text-muted-foreground mt-4 text-center">Read-only view · Omni Technical Solutions</p>
       </div>
 
-      {/* Image Modal */}
-      {imageModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setImageModal(null)}
-        >
-          <div
-            className="bg-white rounded-lg max-w-2xl max-h-[80vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
+{/* Image/PDF Modal */}
+{imageModal && (
+  <div
+    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    onClick={() => setImageModal(null)}
+  >
+    <div
+      className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white z-10">
+        <h3 className="font-semibold text-sm">{imageModal.label}</h3>
+        <div className="flex items-center gap-2">
+          
+            href={imageModal.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-1 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
           >
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h3 className="font-semibold text-sm">{imageModal.label}</h3>
-              <button
-                onClick={() => setImageModal(null)}
-                className="p-1 hover:bg-muted rounded transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-4">
-              <img src={imageModal.url} alt={imageModal.label} className="w-full max-h-[600px] object-contain" />
-            </div>
-          </div>
+            Open in new tab
+          </a>
+          <button
+            onClick={() => setImageModal(null)}
+            className="p-1 hover:bg-muted rounded transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
+      </div>
+      <div className="overflow-auto flex-1 p-4 flex items-center justify-center bg-muted/20">
+        {imageModal.url.toLowerCase().includes('.pdf') || imageModal.url.toLowerCase().includes('application/pdf') ? (
+          <iframe
+            src={imageModal.url}
+            className="w-full rounded border"
+            style={{ height: '70vh' }}
+            title={imageModal.label}
+          />
+        ) : (
+          <img
+            src={imageModal.url}
+            alt={imageModal.label}
+            className="max-w-full max-h-[70vh] object-contain rounded"
+          />
+        )}
+      </div>
+    </div>
+  </div>
+)}
       )}
     </div>
   );
