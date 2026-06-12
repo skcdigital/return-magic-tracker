@@ -140,6 +140,18 @@ function BundleCell({ value }: { value: Bundle }) {
         <AlertTriangle className="h-3.5 w-3.5" /> Partial
       </span>
     );
+  if (value === "standalone_laptop")
+    return (
+      <span className="inline-flex items-center gap-1 text-blue-700 text-xs font-semibold">
+        <Check className="h-3.5 w-3.5" /> Standalone
+      </span>
+    );
+  if (value === "none")
+    return (
+      <span className="inline-flex items-center gap-1 text-slate-700 text-xs font-semibold">
+        <X className="h-3.5 w-3.5" /> None
+      </span>
+    );
   return (
     <span className="inline-flex items-center gap-1 text-rose-700 text-xs font-semibold">
       <X className="h-3.5 w-3.5" /> No
@@ -423,6 +435,9 @@ function ReturnsTrackerPage() {
   }
 
   function exportExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // ─── Data sheet ───
     const rows = filtered.map((r) => ({
       Type: r.refType,
       Reference: r.refNumber,
@@ -430,7 +445,7 @@ function ReturnsTrackerPage() {
       "Serial Number": r.serialNumber,
       Store: r.storeName,
       Product: r.productType === "printer" ? "Printer" : "Laptop",
-      Bundle: r.bundle === "yes" ? "Yes" : r.bundle === "partial" ? "Partial" : "No",
+      Bundle: r.bundle === "yes" ? "Yes" : r.bundle === "partial" ? "Partial" : r.bundle === "standalone_laptop" ? "Standalone Laptop" : "None",
       Location: r.unitLocation,
       Date: r.date,
       Status: r.status.charAt(0).toUpperCase() + r.status.slice(1),
@@ -438,11 +453,61 @@ function ReturnsTrackerPage() {
       "Credit Note No.": r.creditNoteNumber,
       Notes: r.notes,
     }));
+    
     const ws = XLSX.utils.json_to_sheet(rows);
-    // Column widths
-    ws["!cols"] = [8,16,14,18,20,10,10,18,12,12,16,16,30].map(w => ({ wch: w }));
-    const wb = XLSX.utils.book_new();
+    ws["!cols"] = [8,16,14,18,20,10,14,18,12,12,16,16,30].map(w => ({ wch: w }));
+    
+    // Header styling
+    const headerRange = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (!ws[address]) continue;
+      ws[address].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "1F2937" } },
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      };
+    }
+
+    // ─── Summary sheet ───
+    const summaryData = [
+      ["Returns Tracker Summary", "", ""],
+      ["Generated", format(new Date(), "dd MMM yyyy HH:mm"), ""],
+      [""],
+      ["Total Returns", filtered.length, ""],
+      ["Completed", filtered.filter(d => d.status === "completed").length, ""],
+      ["Started", filtered.filter(d => d.status === "started").length, ""],
+      ["Pending", filtered.filter(d => d.status === "pending").length, ""],
+      ["Missing", filtered.filter(d => d.status === "missing").length, ""],
+      [""],
+      ["Product Breakdown", "", ""],
+      ["Laptops", filtered.filter(d => d.productType === "laptop").length, ""],
+      ["Printers", filtered.filter(d => d.productType === "printer").length, ""],
+      [""],
+      ["Bundle Status", "", ""],
+      ["Full Bundle", filtered.filter(d => d.bundle === "yes").length, ""],
+      ["Partial", filtered.filter(d => d.bundle === "partial").length, ""],
+      ["Standalone Laptop", filtered.filter(d => d.bundle === "standalone_laptop").length, ""],
+      ["None", filtered.filter(d => d.bundle === "no" || d.bundle === "none").length, ""],
+      [""],
+      ["Credit Status", "", ""],
+      ["Supplier Credit", filtered.filter(d => d.creditStatus === "supplier_credit").length, ""],
+      ["Unit on Hand", filtered.filter(d => d.creditStatus === "unit_on_hand").length, ""],
+    ];
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }];
+    
+    // Summary styling
+    if (wsSummary["A1"]) {
+      wsSummary["A1"].s = {
+        font: { bold: true, size: 14, color: { rgb: "1F2937" } },
+      };
+    }
+    
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
     XLSX.utils.book_append_sheet(wb, ws, "Returns");
+    
     XLSX.writeFile(wb, `returns-omni-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
 
@@ -723,15 +788,29 @@ function ReturnsTrackerPage() {
             </Field>
             <Field label="Retailer" className="sm:col-span-2">
               <div className="flex flex-col gap-2">
-                <Select value={RETAILERS.includes(form.storeName) ? form.storeName : "__custom"} onValueChange={(v) => setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))}>
+                <Select value={RETAILERS.includes(form.storeName.split(" - ")[0]) ? form.storeName.split(" - ")[0] : "__custom"} onValueChange={(v) => setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))}>
                   <SelectTrigger><SelectValue placeholder="Select retailer" /></SelectTrigger>
                   <SelectContent>
                     {RETAILERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                     <SelectItem value="__custom">Other (type below)</SelectItem>
                   </SelectContent>
                 </Select>
-                {!RETAILERS.includes(form.storeName) && (
-                  <Input value={form.storeName} onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))} placeholder="Store name / branch" />
+                {form.storeName && (
+                  <Input
+                    value={form.storeName.includes(" - ") ? form.storeName.split(" - ")[1] : ""}
+                    onChange={(e) => {
+                      const retailer = RETAILERS.find(r => form.storeName.startsWith(r)) || form.storeName.split(" - ")[0];
+                      setForm((f) => ({ ...f, storeName: e.target.value ? `${retailer} - ${e.target.value}` : retailer }));
+                    }}
+                    placeholder="Branch / Store location (e.g. Sandton, Westgate)"
+                  />
+                )}
+                {!RETAILERS.includes(form.storeName.split(" - ")[0]) && form.storeName && (
+                  <Input
+                    value={form.storeName.split(" - ")[0]}
+                    onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                    placeholder="Store name"
+                  />
                 )}
               </div>
             </Field>
@@ -750,6 +829,8 @@ function ReturnsTrackerPage() {
                 <SelectContent>
                   <SelectItem value="yes">Yes — full bundle</SelectItem>
                   <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="standalone_laptop">Standalone laptop</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
