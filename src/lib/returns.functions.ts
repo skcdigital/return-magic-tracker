@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 const RefTypeSchema = z.enum(["RFC", "GRS", "GRN"]);
@@ -29,6 +30,15 @@ export interface ReturnEntry {
   creditNoteNumber: string;
   notes: string;
   createdAt: string;
+}
+
+function getClient() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("Missing Supabase env vars");
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function dbToEntry(row: Record<string, unknown>): ReturnEntry {
@@ -70,8 +80,8 @@ function entryToDb(entry: Partial<ReturnEntry>) {
 }
 
 export const listReturns = createServerFn({ method: "GET" }).handler(async () => {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
+  const supabase = getClient();
+  const { data, error } = await supabase
     .from("return_entries")
     .select("*")
     .order("created_at", { ascending: false });
@@ -98,8 +108,8 @@ const createSchema = z.object({
 export const createReturn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: inserted, error } = await supabaseAdmin
+    const supabase = getClient();
+    const { data: inserted, error } = await supabase
       .from("return_entries")
       .insert(entryToDb(data))
       .select()
@@ -128,9 +138,9 @@ const updateSchema = z.object({
 export const updateReturn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => updateSchema.parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabase = getClient();
     const { id, ...rest } = data;
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await supabase
       .from("return_entries")
       .update(entryToDb(rest))
       .eq("id", id)
@@ -145,8 +155,8 @@ const deleteSchema = z.object({ id: z.string().uuid() });
 export const deleteReturn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => deleteSchema.parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("return_entries").delete().eq("id", data.id);
+    const supabase = getClient();
+    const { error } = await supabase.from("return_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
   });
