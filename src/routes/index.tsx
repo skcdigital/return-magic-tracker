@@ -86,6 +86,8 @@ const RETAILERS = [
   "Bradlows",
   "Hi-Fi Corp",
   "Incredible Connection",
+  "House and Home",
+  "Railway Funishers",
 ];
 
 const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
