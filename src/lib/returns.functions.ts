@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 const RefTypeSchema = z.enum(["RFC", "GRS", "GRN"]);
-const StatusSchema = z.enum(["completed", "started", "pending", "missing"]);
+const StatusSchema = z.enum(["completed", "started", "pending", "missing", "incomplete", "in_progress", "credit_processed"]);
 const BundleSchema = z.enum(["yes", "partial", "no", "standalone_laptop", "none"]);
 const ProductTypeSchema = z.enum(["laptop", "printer", "rma"]);
-const CreditStatusSchema = z.enum(["supplier_credit", "unit_on_hand"]);
+const CreditStatusSchema = z.enum(["supplier_credit", "unit_on_hand", "no_physical_unit"]);
 
 export type RefType = z.infer<typeof RefTypeSchema>;
 export type Status = z.infer<typeof StatusSchema>;
@@ -31,6 +31,8 @@ export interface ReturnEntry {
   notes: string;
   grsRfcGrnImageUrl: string;
   supplierCreditImageUrl: string;
+  requestedCreditAmount: string;
+  supplierCreditAmount: string;
   createdAt: string;
 }
 
@@ -61,6 +63,8 @@ function dbToEntry(row: Record<string, unknown>): ReturnEntry {
     notes: String(row.notes ?? ""),
     grsRfcGrnImageUrl: String(row.grs_rfc_grn_image_url ?? ""),
     supplierCreditImageUrl: String(row.supplier_credit_image_url ?? ""),
+    requestedCreditAmount: String(row.requested_credit_amount ?? ""),
+    supplierCreditAmount: String(row.supplier_credit_amount ?? ""),
     createdAt: String(row.created_at ?? ""),
   };
 }
@@ -82,6 +86,8 @@ function entryToDb(entry: Partial<ReturnEntry>) {
     notes: entry.notes,
     grs_rfc_grn_image_url: entry.grsRfcGrnImageUrl,
     supplier_credit_image_url: entry.supplierCreditImageUrl,
+    requested_credit_amount: entry.requestedCreditAmount,
+    supplier_credit_amount: entry.supplierCreditAmount,
   } as any;
 }
 
@@ -109,6 +115,10 @@ const createSchema = z.object({
   creditStatus: CreditStatusSchema,
   creditNoteNumber: z.string(),
   notes: z.string(),
+  grsRfcGrnImageUrl: z.string().optional().default(""),
+  supplierCreditImageUrl: z.string().optional().default(""),
+  requestedCreditAmount: z.string().optional().default(""),
+  supplierCreditAmount: z.string().optional().default(""),
 });
 
 export const createReturn = createServerFn({ method: "POST" })
@@ -139,6 +149,10 @@ const updateSchema = z.object({
   creditStatus: CreditStatusSchema,
   creditNoteNumber: z.string(),
   notes: z.string(),
+  grsRfcGrnImageUrl: z.string().optional().default(""),
+  supplierCreditImageUrl: z.string().optional().default(""),
+  requestedCreditAmount: z.string().optional().default(""),
+  supplierCreditAmount: z.string().optional().default(""),
 });
 
 export const updateReturn = createServerFn({ method: "POST" })

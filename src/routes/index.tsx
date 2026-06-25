@@ -1,5 +1,5 @@
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,6 +24,12 @@ import {
   EyeOff,
   FileSpreadsheet,
   BarChart3,
+  TrendingUp,
+  DollarSign,
+  FileText,
+  ZoomIn,
+  Activity,
+  CreditCard,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -86,6 +92,8 @@ const RETAILERS = [
   "Bradlows",
   "Hi-Fi Corp",
   "Incredible Connection",
+  "House and Home",
+  "Railway Funishers",
 ];
 
 const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
@@ -104,6 +112,8 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   notes: "",
   grsRfcGrnImageUrl: "",
   supplierCreditImageUrl: "",
+  requestedCreditAmount: "",
+  supplierCreditAmount: "",
 });
 
 const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: string }> = {
@@ -126,6 +136,21 @@ const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: stri
     label: "Missing",
     icon: AlertTriangle,
     cls: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200",
+  },
+  incomplete: {
+    label: "Incomplete",
+    icon: AlertTriangle,
+    cls: "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200",
+  },
+  in_progress: {
+    label: "In Progress",
+    icon: Activity,
+    cls: "bg-cyan-50 text-cyan-700 ring-1 ring-inset ring-cyan-200",
+  },
+  credit_processed: {
+    label: "Credit Processed",
+    icon: CreditCard,
+    cls: "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200",
   },
 };
 
@@ -201,6 +226,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
+  const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -284,7 +310,11 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0 bg-card">
+                  <tr
+                    key={r.id}
+                    className="border-b last:border-0 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setViewEntry(r)}
+                  >
                     <td className="px-3.5 py-2.5">
                       <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{r.refType}</span>
                     </td>
@@ -302,6 +332,8 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                           <span className="font-semibold text-emerald-700">Supplier credit</span>
                           <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "— no CN —"}</span>
                         </div>
+                      ) : r.creditStatus === "no_physical_unit" ? (
+                        <span className="font-semibold text-rose-700">No physical unit</span>
                       ) : (
                         <span className="font-semibold text-slate-700">Unit on hand</span>
                       )}
@@ -310,7 +342,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                       {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                     </td>
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes || "—"}</td>
-                    <td className="px-3.5 py-2.5 text-xs">
+                    <td className="px-3.5 py-2.5 text-xs" onClick={e => e.stopPropagation()}>
                       <div className="flex gap-1">
                         {r.grsRfcGrnImageUrl && (
                           <button
@@ -342,7 +374,71 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         <p className="text-xs text-muted-foreground mt-4 text-center">Read-only view · Omni Technical Solutions</p>
       </div>
 
-      {/* Image Modal */}
+      {/* Detail modal for read-only */}
+      {viewEntry && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewEntry(null)}>
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">{viewEntry.refType}</span>
+                <div>
+                  <p className="text-white font-bold text-lg">{viewEntry.refNumber || "—"}</p>
+                  <p className="text-white/60 text-xs">{viewEntry.storeName || "No store"} · {viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy") : "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={viewEntry.status} />
+                <button onClick={() => setViewEntry(null)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="p-5 grid grid-cols-2 gap-x-8 gap-y-4">
+              <DetailRow label="Job Number" value={viewEntry.jobNumber} mono />
+              <DetailRow label="Serial Number" value={viewEntry.serialNumber} mono />
+              <DetailRow label="Product" value={<ProductTypeCell value={viewEntry.productType} />} />
+              <DetailRow label="Bundle" value={<BundleCell value={viewEntry.bundle} />} />
+              <DetailRow label="Unit Location" value={viewEntry.unitLocation} />
+              <DetailRow label="Date" value={viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy") : "—"} />
+              <div className="col-span-2 border-t pt-3 mt-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit Information</p>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <DetailRow label="Credit Status" value={
+                    viewEntry.creditStatus === "supplier_credit"
+                      ? <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                      : viewEntry.creditStatus === "no_physical_unit"
+                      ? <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                      : <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                  } />
+                  {viewEntry.creditNoteNumber && <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />}
+                  {viewEntry.requestedCreditAmount && <DetailRow label="Credit Requested" value={<span className="font-bold text-blue-700">R {viewEntry.requestedCreditAmount}</span>} />}
+                  {viewEntry.supplierCreditAmount && <DetailRow label="Supplier Credited" value={<span className="font-bold text-emerald-700">R {viewEntry.supplierCreditAmount}</span>} />}
+                </div>
+              </div>
+              {viewEntry.notes && (
+                <div className="col-span-2 border-t pt-3 mt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Notes</p>
+                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{viewEntry.notes}</p>
+                </div>
+              )}
+              {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
+                <div className="col-span-2 border-t pt-3 mt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Attached Documents</p>
+                  <div className="flex flex-wrap gap-3">
+                    {viewEntry.grsRfcGrnImageUrl && <DocPreview url={viewEntry.grsRfcGrnImageUrl} label="GRS/RFC/GRN Document" color="blue" />}
+                    {viewEntry.supplierCreditImageUrl && <DocPreview url={viewEntry.supplierCreditImageUrl} label="Supplier Credit Note" color="emerald" />}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end px-5 pb-5 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image/PDF Modal */}
       {imageModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -362,7 +458,16 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
               </button>
             </div>
             <div className="p-4">
-              <img src={imageModal.url} alt={imageModal.label} className="w-full max-h-[600px] object-contain" />
+              {imageModal.url.startsWith("data:application/pdf") ? (
+                <object data={imageModal.url} type="application/pdf" className="w-full min-h-[600px]">
+                  <p className="text-sm text-muted-foreground">
+                    PDF preview is not supported by your browser.
+                    <a href={imageModal.url} target="_blank" rel="noreferrer" className="text-blue-600 underline ml-1">Open PDF in a new tab</a>.
+                  </p>
+                </object>
+              ) : (
+                <img src={imageModal.url} alt={imageModal.label} className="w-full max-h-[600px] object-contain" />
+              )}
             </div>
           </div>
         </div>
@@ -379,8 +484,15 @@ function ReturnsTrackerPage() {
   const fetchDelete = useServerFn(deleteReturn);
 
   // Check for read-only mode via URL param ?view=readonly
-  const location = useSearch({ from: "/" }) as Record<string, string>;
-  const isReadOnly = location?.view === "readonly";
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  
+  // Use effect to check URL params on client-side only (avoids hydration mismatch)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setIsReadOnly(params.get("view") === "readonly");
+    }
+  }, []);
 
   const { data: listData, isLoading, isError } = useQuery({
     queryKey: ["returns"],
@@ -402,6 +514,7 @@ function ReturnsTrackerPage() {
   const [form, setForm] = useState(emptyEntry());
   const [showDashboard, setShowDashboard] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
+  const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) => fetchCreate({ data: entry }),
@@ -443,26 +556,35 @@ function ReturnsTrackerPage() {
       });
   }, [data, search, statusFilter, typeFilter, storeFilter, dateFrom, dateTo, sortKey, sortDir]);
 
-  const stats = useMemo(() => ({
-    total: data.length,
-    completed: data.filter((d) => d.status === "completed").length,
-    started: data.filter((d) => d.status === "started").length,
-    pending: data.filter((d) => d.status === "pending").length,
-    missing: data.filter((d) => d.status === "missing").length,
-    supplierCredit: data.filter((d) => d.creditStatus === "supplier_credit").length,
-    unitOnHand: data.filter((d) => d.creditStatus === "unit_on_hand").length,
-    byType: {
-      RFC: data.filter((d) => d.refType === "RFC").length,
-      GRS: data.filter((d) => d.refType === "GRS").length,
-      GRN: data.filter((d) => d.refType === "GRN").length,
-    },
-    byProduct: {
-      laptop: data.filter((d) => d.productType === "laptop").length,
-      printer: data.filter((d) => d.productType === "printer").length,
-      rma: data.filter((d) => d.productType === "rma").length,
-    },
-    bundleIssues: data.filter((d) => d.bundle === "no" || d.bundle === "partial").length,
-  }), [data]);
+  const stats = useMemo(() => {
+    const parseAmt = (v: string) => { const n = parseFloat(v.replace(/[^0-9.]/g, "")); return isNaN(n) ? 0 : n; };
+    return {
+      total: data.length,
+      completed: data.filter((d) => d.status === "completed").length,
+      creditProcessed: data.filter((d) => d.status === "credit_processed").length,
+      started: data.filter((d) => d.status === "started").length,
+      inProgress: data.filter((d) => d.status === "in_progress").length,
+      pending: data.filter((d) => d.status === "pending").length,
+      incomplete: data.filter((d) => d.status === "incomplete").length,
+      missing: data.filter((d) => d.status === "missing").length,
+      supplierCredit: data.filter((d) => d.creditStatus === "supplier_credit").length,
+      unitOnHand: data.filter((d) => d.creditStatus === "unit_on_hand").length,
+      noPhysicalUnit: data.filter((d) => d.creditStatus === "no_physical_unit").length,
+      byType: {
+        RFC: data.filter((d) => d.refType === "RFC").length,
+        GRS: data.filter((d) => d.refType === "GRS").length,
+        GRN: data.filter((d) => d.refType === "GRN").length,
+      },
+      byProduct: {
+        laptop: data.filter((d) => d.productType === "laptop").length,
+        printer: data.filter((d) => d.productType === "printer").length,
+        rma: data.filter((d) => d.productType === "rma").length,
+      },
+      bundleIssues: data.filter((d) => d.bundle === "no" || d.bundle === "partial").length,
+      totalRequestedCredit: data.reduce((s, d) => s + parseAmt(d.requestedCreditAmount), 0),
+      totalSupplierCredit: data.reduce((s, d) => s + parseAmt(d.supplierCreditAmount), 0),
+    };
+  }, [data]);
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir((s) => (s === 1 ? -1 : 1));
@@ -480,6 +602,10 @@ function ReturnsTrackerPage() {
       unitLocation: r.unitLocation, date: r.date, status: r.status,
       creditStatus: r.creditStatus ?? "unit_on_hand",
       creditNoteNumber: r.creditNoteNumber ?? "", notes: r.notes,
+      grsRfcGrnImageUrl: r.grsRfcGrnImageUrl ?? "",
+      supplierCreditImageUrl: r.supplierCreditImageUrl ?? "",
+      requestedCreditAmount: r.requestedCreditAmount ?? "",
+      supplierCreditAmount: r.supplierCreditAmount ?? "",
     });
     setModalOpen(true);
   }
@@ -732,59 +858,136 @@ function ReturnsTrackerPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
           <StatCard label="Total Returns" value={stats.total} />
-          <StatCard label="Completed" value={stats.completed} tone="success" />
-          <StatCard label="Started" value={stats.started} tone="info" />
-          <StatCard label="Pending" value={stats.pending} tone="warn" />
+          <StatCard label="Completed" value={stats.completed + stats.creditProcessed} tone="success" />
+          <StatCard label="Active" value={stats.started + stats.inProgress} tone="info" />
+          <StatCard label="Pending" value={stats.pending + stats.incomplete} tone="warn" />
           <StatCard label="Missing" value={stats.missing} tone="danger" />
         </div>
 
+        {/* Credit Financial Banner */}
+        {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
+          <div className="rounded-xl border bg-gradient-to-r from-purple-50 via-blue-50 to-emerald-50 shadow-sm p-4 mb-4 flex flex-wrap gap-6 items-center">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center shadow">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-600">Total Credit Requested</p>
+                <p className="text-xl font-bold text-blue-800">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-emerald-600 flex items-center justify-center shadow">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Supplier Credit Received</p>
+                <p className="text-xl font-bold text-emerald-800">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+            {stats.totalRequestedCredit > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center shadow">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-purple-600">Outstanding Balance</p>
+                  <p className={cn("text-xl font-bold", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-700" : "text-emerald-700")}>
+                    R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+                    <span className="text-xs font-normal ml-1">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed" : "over-credited"}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Dashboard panel */}
         {showDashboard && (
-          <div className="rounded-xl border bg-card shadow-sm p-5 mb-5 grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">By Type</p>
-              {(["RFC","GRS","GRN"] as const).map(t => (
-                <div key={t} className="flex items-center justify-between mb-1.5">
-                  <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{t}</span>
-                  <span className="text-sm font-semibold">{stats.byType[t]}</span>
-                </div>
-              ))}
+          <div className="rounded-xl border bg-card shadow-sm p-5 mb-5">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-semibold">Live Dashboard</h2>
+              <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live
+              </span>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit Status</p>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-emerald-700 font-semibold">Supplier Credit</span>
-                <span className="text-sm font-semibold">{stats.supplierCredit}</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">By Type</p>
+                {(["RFC","GRS","GRN"] as const).map(t => (
+                  <div key={t} className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{t}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 rounded-full bg-blue-200 w-[60px] overflow-hidden">
+                        <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
+                      </div>
+                      <span className="text-sm font-semibold w-5 text-right">{stats.byType[t]}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-slate-700 font-semibold">Unit on Hand</span>
-                <span className="text-sm font-semibold">{stats.unitOnHand}</span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Status</p>
+                {([
+                  { k: "credit_processed", label: "Credit Processed", color: "bg-purple-500" },
+                  { k: "completed", label: "Completed", color: "bg-emerald-500" },
+                  { k: "in_progress", label: "In Progress", color: "bg-cyan-500" },
+                  { k: "started", label: "Started", color: "bg-blue-500" },
+                  { k: "pending", label: "Pending", color: "bg-amber-500" },
+                  { k: "incomplete", label: "Incomplete", color: "bg-orange-500" },
+                  { k: "missing", label: "Missing", color: "bg-rose-500" },
+                ] as const).map(({ k, label, color }) => {
+                  const count = data.filter(d => d.status === k).length;
+                  if (count === 0) return null;
+                  return (
+                    <div key={k} className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(count / stats.total) * 100}%` : "0%" }} />
+                        </div>
+                        <span className="text-sm font-semibold w-5 text-right">{count}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">By Product</p>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-sky-700">Laptop</span>
-                <span className="text-sm font-semibold">{stats.byProduct.laptop}</span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Product</p>
+                {[
+                  { label: "Laptop", val: stats.byProduct.laptop, color: "bg-sky-500" },
+                  { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
+                  { label: "RMA", val: stats.byProduct.rma, color: "bg-amber-500" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                      </div>
+                      <span className="text-sm font-semibold w-5 text-right">{val}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-violet-700">Printer</span>
-                <span className="text-sm font-semibold">{stats.byProduct.printer}</span>
-              </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-amber-700">RMA</span>
-                <span className="text-sm font-semibold">{stats.byProduct.rma}</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bundle Issues</p>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-rose-700">Incomplete / Missing bundles</span>
-                <span className="text-sm font-semibold text-rose-700">{stats.bundleIssues}</span>
-              </div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">Showing (filtered)</span>
-                <span className="text-sm font-semibold">{filtered.length}</span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit</p>
+                {[
+                  { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
+                  { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
+                  { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
+                        <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                      </div>
+                      <span className="text-sm font-semibold w-5 text-right">{val}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -807,7 +1010,10 @@ function ReturnsTrackerPage() {
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="started">Started</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="incomplete">Incomplete</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="credit_processed">Credit Processed</SelectItem>
               <SelectItem value="missing">Missing</SelectItem>
             </SelectContent>
           </Select>
@@ -883,7 +1089,11 @@ function ReturnsTrackerPage() {
                   <tr><td colSpan={13}><div className="py-14 text-center text-muted-foreground"><PackageOpen className="h-10 w-10 mx-auto mb-3 opacity-30" /><p className="text-foreground font-medium mb-1">{data.length === 0 ? "No returns yet" : "No results found"}</p><span className="text-sm">{data.length === 0 ? 'Click "Add Return" to log your first entry.' : "Try adjusting your search or filters."}</span></div></td></tr>
                 ) : (
                   filtered.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={r.id}
+                      className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => setViewEntry(r)}
+                    >
                       <td className="px-3.5 py-2.5">
                         <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{r.refType}</span>
                       </td>
@@ -901,6 +1111,8 @@ function ReturnsTrackerPage() {
                             <span className="font-semibold text-emerald-700">Supplier credit</span>
                             <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "— no CN —"}</span>
                           </div>
+                        ) : r.creditStatus === "no_physical_unit" ? (
+                          <span className="font-semibold text-rose-700">No physical unit</span>
                         ) : (
                           <span className="font-semibold text-slate-700">Unit on hand</span>
                         )}
@@ -909,7 +1121,7 @@ function ReturnsTrackerPage() {
                         {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes || "—"}</td>
-                      <td className="px-2 py-2">
+                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-0.5 justify-end">
                           <IconBtn label="Edit" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
                           <IconBtn label="Delete" danger onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></IconBtn>
@@ -1026,7 +1238,10 @@ function ReturnsTrackerPage() {
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="started">Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="incomplete">Incomplete</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="credit_processed">Credit Processed ✓</SelectItem>
                   <SelectItem value="missing">Missing</SelectItem>
                 </SelectContent>
               </Select>
@@ -1037,6 +1252,7 @@ function ReturnsTrackerPage() {
                 <SelectContent>
                   <SelectItem value="unit_on_hand">Unit on hand (physical unit with us)</SelectItem>
                   <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
+                  <SelectItem value="no_physical_unit">No physical unit (lost / not returned)</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -1045,9 +1261,25 @@ function ReturnsTrackerPage() {
                 <Input value={form.creditNoteNumber} onChange={(e) => setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))} placeholder="e.g. CN-2024-00872" />
               </Field>
             )}
-            <Field label="GRS/RFC/GRN Document Image" className="sm:col-span-2">
+            <Field label="Credit Amount Requested (R)" className="sm:col-span-1">
+              <Input
+                type="text"
+                value={form.requestedCreditAmount}
+                onChange={(e) => setForm((f) => ({ ...f, requestedCreditAmount: e.target.value }))}
+                placeholder="e.g. 4 999.00"
+              />
+            </Field>
+            <Field label="Supplier Credit Amount (R)" className="sm:col-span-1">
+              <Input
+                type="text"
+                value={form.supplierCreditAmount}
+                onChange={(e) => setForm((f) => ({ ...f, supplierCreditAmount: e.target.value }))}
+                placeholder="e.g. 4 500.00"
+              />
+            </Field>
+            <Field label="GRS/RFC/GRN Document" className="sm:col-span-2">
               <div className="flex flex-col gap-2">
-                <input type="file" accept="image/*" onChange={(e) => {
+                <input type="file" accept="image/*,.pdf" onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
                     const reader = new FileReader();
@@ -1057,13 +1289,21 @@ function ReturnsTrackerPage() {
                     reader.readAsDataURL(file);
                   }
                 }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
-                {form.grsRfcGrnImageUrl && <img src={form.grsRfcGrnImageUrl} alt="GRS/RFC/GRN" className="h-24 w-auto rounded border" />}
+                {form.grsRfcGrnImageUrl && (
+                  form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
+                    <a href={form.grsRfcGrnImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                      <FileSpreadsheet className="h-4 w-4" /> View PDF document
+                    </a>
+                  ) : (
+                    <img src={form.grsRfcGrnImageUrl} alt="GRS/RFC/GRN" className="h-24 w-auto rounded border" />
+                  )
+                )}
               </div>
             </Field>
             {form.creditStatus === "supplier_credit" && (
               <Field label="Supplier Credit Note Image" className="sm:col-span-2">
                 <div className="flex flex-col gap-2">
-                  <input type="file" accept="image/*" onChange={(e) => {
+                  <input type="file" accept="image/*,.pdf" onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
                       const reader = new FileReader();
@@ -1073,7 +1313,15 @@ function ReturnsTrackerPage() {
                       reader.readAsDataURL(file);
                     }
                   }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
-                  {form.supplierCreditImageUrl && <img src={form.supplierCreditImageUrl} alt="Credit Note" className="h-24 w-auto rounded border" />}
+                  {form.supplierCreditImageUrl && (
+                    form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
+                      <a href={form.supplierCreditImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                        <FileSpreadsheet className="h-4 w-4" /> View PDF document
+                      </a>
+                    ) : (
+                      <img src={form.supplierCreditImageUrl} alt="Credit Note" className="h-24 w-auto rounded border" />
+                    )
+                  )}
                 </div>
               </Field>
             )}
@@ -1090,6 +1338,95 @@ function ReturnsTrackerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Detail View Modal (click a row) ── */}
+      {viewEntry && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewEntry(null)}>
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">{viewEntry.refType}</span>
+                <div>
+                  <p className="text-white font-bold text-lg">{viewEntry.refNumber || "—"}</p>
+                  <p className="text-white/60 text-xs">{viewEntry.storeName || "No store"} · {viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy") : "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={viewEntry.status} />
+                <button onClick={() => setViewEntry(null)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 grid grid-cols-2 gap-x-8 gap-y-4">
+              {/* Row 1 */}
+              <DetailRow label="Job Number" value={viewEntry.jobNumber} mono />
+              <DetailRow label="Serial Number" value={viewEntry.serialNumber} mono />
+              <DetailRow label="Product" value={<ProductTypeCell value={viewEntry.productType} />} />
+              <DetailRow label="Bundle" value={<BundleCell value={viewEntry.bundle} />} />
+              <DetailRow label="Unit Location" value={viewEntry.unitLocation} />
+              <DetailRow label="Date" value={viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy") : "—"} />
+
+              {/* Credit section */}
+              <div className="col-span-2 border-t pt-3 mt-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit Information</p>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <DetailRow label="Credit Status" value={
+                    viewEntry.creditStatus === "supplier_credit"
+                      ? <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                      : viewEntry.creditStatus === "no_physical_unit"
+                      ? <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                      : <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                  } />
+                  {viewEntry.creditNoteNumber && <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />}
+                  {viewEntry.requestedCreditAmount && (
+                    <DetailRow label="Credit Requested" value={<span className="font-bold text-blue-700">R {viewEntry.requestedCreditAmount}</span>} />
+                  )}
+                  {viewEntry.supplierCreditAmount && (
+                    <DetailRow label="Supplier Credited" value={<span className="font-bold text-emerald-700">R {viewEntry.supplierCreditAmount}</span>} />
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
+              {viewEntry.notes && (
+                <div className="col-span-2 border-t pt-3 mt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Notes</p>
+                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{viewEntry.notes}</p>
+                </div>
+              )}
+
+              {/* Documents */}
+              {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
+                <div className="col-span-2 border-t pt-3 mt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Attached Documents</p>
+                  <div className="flex flex-wrap gap-3">
+                    {viewEntry.grsRfcGrnImageUrl && (
+                      <DocPreview url={viewEntry.grsRfcGrnImageUrl} label="GRS/RFC/GRN Document" color="blue" />
+                    )}
+                    {viewEntry.supplierCreditImageUrl && (
+                      <DocPreview url={viewEntry.supplierCreditImageUrl} label="Supplier Credit Note" color="emerald" />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer actions */}
+            <div className="flex items-center justify-between px-5 pb-5 pt-2 border-t gap-2 flex-wrap">
+              <p className="text-[11px] text-muted-foreground">Created {viewEntry.createdAt ? format(new Date(viewEntry.createdAt), "dd MMM yyyy HH:mm") : "—"}</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setViewEntry(null); openEdit(viewEntry); }}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>Close</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1127,6 +1464,44 @@ function Field({ label, children, className }: { label: string; children: React.
     <div className={className}>
       <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function DetailRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">{label}</p>
+      <p className={cn("text-sm text-foreground", mono && "font-mono")}>{value || "—"}</p>
+    </div>
+  );
+}
+
+function DocPreview({ url, label, color }: { url: string; label: string; color: "blue" | "emerald" }) {
+  const isPdf = url.startsWith("data:application/pdf");
+  const cls = color === "blue"
+    ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+    : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100";
+
+  if (isPdf) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" download={`${label}.pdf`}
+        className={cn("flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors", cls)}>
+        <FileText className="h-5 w-5" /> {label}
+        <span className="text-[11px] font-normal opacity-70 ml-1">PDF · click to view / download</span>
+      </a>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <a href={url} target="_blank" rel="noreferrer" download={`${label}.jpg`}>
+        <img src={url} alt={label} className="h-36 w-auto rounded-lg border shadow-sm hover:shadow-md transition-shadow object-cover" />
+      </a>
+      <a href={url} download={`${label}.jpg`}
+        className={cn("inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2 py-1 border transition-colors self-start", cls)}>
+        <Download className="h-3.5 w-3.5" /> Download
+      </a>
     </div>
   );
 }
