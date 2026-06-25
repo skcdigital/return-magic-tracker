@@ -1,7 +1,7 @@
 {
   "inputs": [
     {
-      "id": "supabase-access-token",
+      "id": "supabase-access-token-v2",
       "type": "promptString",
       "description": "Supabase Personal Access Token (from supabase.com → Account → Access Tokens)",
       "password": true
@@ -18,7 +18,7 @@
       "command": "npx",
       "args": ["-y", "@supabase/mcp-server-supabase@latest"],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "${input:supabase-access-token}"
+        "SUPABASE_ACCESS_TOKEN": "${input:supabase-access-token-v2}"
       }
     }
   }

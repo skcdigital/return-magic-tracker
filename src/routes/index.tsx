@@ -1,5 +1,27 @@
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+
+// ── Animated counter hook ──
+function useCountUp(target: number, duration = 900) {
+  const [value, setValue] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    const from = prev.current;
+    prev.current = target;
+    if (from === target) return;
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(from + (target - from) * ease));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return value;
+}
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -220,6 +242,8 @@ type SortKey = keyof Pick<
   "refType" | "refNumber" | "jobNumber" | "serialNumber" | "storeName" | "unitLocation" | "status" | "date"
 >;
 
+type AppTab = "active" | "credited";
+
 // ── Read-only view (shareable link with ?view=readonly) ──
 function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
   const [search, setSearch] = useState("");
@@ -261,10 +285,17 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatCard label="Total Returns" value={data.length} />
-          <StatCard label="Completed" value={data.filter(d => d.status === "completed").length} tone="success" />
-          <StatCard label="Pending" value={data.filter(d => d.status === "pending").length} tone="warn" />
-          <StatCard label="Missing" value={data.filter(d => d.status === "missing").length} tone="danger" />
+          {[
+            { label: "Total Returns", value: data.length, cls: "text-slate-800" },
+            { label: "Completed", value: data.filter(d => d.status === "completed" || d.status === "credit_processed").length, cls: "text-emerald-700" },
+            { label: "Pending / Active", value: data.filter(d => ["pending","started","in_progress","incomplete"].includes(d.status)).length, cls: "text-amber-700" },
+            { label: "Missing", value: data.filter(d => d.status === "missing").length, cls: "text-rose-700" },
+          ].map(({ label, value, cls }) => (
+            <div key={label} className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</div>
+              <div className={cn("text-2xl font-bold tracking-tight", cls)}>{value}</div>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -509,10 +540,10 @@ function ReturnsTrackerPage() {
   const [dateTo, setDateTo] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
+  const [activeTab, setActiveTab] = useState<AppTab>("active");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyEntry());
-  const [showDashboard, setShowDashboard] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
   const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
 
@@ -526,10 +557,24 @@ function ReturnsTrackerPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); setModalOpen(false); },
   });
 
+  const markCreditedMutation = useMutation({
+    mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: { ...entry, status: "credit_processed" } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
+  });
+
+  const restoreActiveMutation = useMutation({
+    mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: { ...entry, status: "completed" } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => fetchDelete({ data: { id } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
   });
+
+  const activeData = useMemo(() => data.filter(r => r.status !== "credit_processed"), [data]);
+  const creditedData = useMemo(() => data.filter(r => r.status === "credit_processed"), [data]);
+  const tableSource = activeTab === "credited" ? creditedData : activeData;
 
   const stores = useMemo(
     () => [...new Set(data.map((d) => d.storeName).filter(Boolean))].sort(),
@@ -538,7 +583,7 @@ function ReturnsTrackerPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return data
+    return tableSource
       .filter((r) => {
         const hay = [r.refNumber, r.jobNumber, r.serialNumber, r.storeName, r.notes, r.unitLocation].join(" ").toLowerCase();
         if (q && !hay.includes(q)) return false;
@@ -554,7 +599,7 @@ function ReturnsTrackerPage() {
         const bv = b[sortKey] ?? "";
         return av < bv ? sortDir : av > bv ? -sortDir : 0;
       });
-  }, [data, search, statusFilter, typeFilter, storeFilter, dateFrom, dateTo, sortKey, sortDir]);
+  }, [tableSource, search, statusFilter, typeFilter, storeFilter, dateFrom, dateTo, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const parseAmt = (v: string) => { const n = parseFloat(v.replace(/[^0-9.]/g, "")); return isNaN(n) ? 0 : n; };
@@ -823,179 +868,216 @@ function ReturnsTrackerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 py-7 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-background">
+      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 py-6 pb-16">
 
-        {/* Top bar */}
-        <header className="flex flex-wrap items-start justify-between gap-4 mb-7">
+        {/* ── Top bar ── */}
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-              <PackageOpen className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center shadow-lg">
+              <PackageOpen className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-[18px] font-semibold tracking-tight">Returns Tracker</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Omni Technical Solutions · RFC / GRS / GRN retail credit returns
-              </p>
+              <h1 className="text-xl font-bold tracking-tight">Returns Tracker</h1>
+              <p className="text-xs text-muted-foreground">Omni Technical Solutions · RFC / GRS / GRN retail credit returns</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setShowDashboard(v => !v)}>
-              <BarChart3 className="h-4 w-4" /> {showDashboard ? "Hide" : "Dashboard"}
-            </Button>
             <Button variant="outline" size="sm" onClick={copyReadOnlyLink}>
-              {copyToast ? <><Check className="h-4 w-4" /> Copied!</> : <><Eye className="h-4 w-4" /> Share view</>}
+              {copyToast ? <><Check className="h-4 w-4 text-emerald-600" /> Copied!</> : <><Eye className="h-4 w-4" /> Share view</>}
             </Button>
             <Button variant="outline" size="sm" onClick={exportExcel} disabled={data.length === 0}>
               <FileSpreadsheet className="h-4 w-4" /> Export Excel
             </Button>
-            <Button size="sm" onClick={openAdd}>
+            <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white" onClick={openAdd}>
               <Plus className="h-4 w-4" /> Add Return
             </Button>
           </div>
         </header>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <StatCard label="Total Returns" value={stats.total} />
-          <StatCard label="Completed" value={stats.completed + stats.creditProcessed} tone="success" />
-          <StatCard label="Active" value={stats.started + stats.inProgress} tone="info" />
-          <StatCard label="Pending" value={stats.pending + stats.incomplete} tone="warn" />
-          <StatCard label="Missing" value={stats.missing} tone="danger" />
+        {/* ── Animated Stats Strip ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+          <AnimatedStatCard label="Total" value={stats.total} icon={PackageOpen} gradient="from-slate-700 to-slate-900" />
+          <AnimatedStatCard label="Active" value={stats.started + stats.inProgress + stats.pending + stats.incomplete} icon={Activity} gradient="from-blue-500 to-blue-700" />
+          <AnimatedStatCard label="Completed" value={stats.completed} icon={CheckCircle2} gradient="from-emerald-500 to-emerald-700" />
+          <AnimatedStatCard label="Credited ✓" value={stats.creditProcessed} icon={CreditCard} gradient="from-purple-500 to-purple-700" />
+          <AnimatedStatCard label="Missing" value={stats.missing} icon={AlertTriangle} gradient="from-rose-500 to-rose-700" />
+          <AnimatedStatCard label="Incomplete" value={stats.incomplete} icon={Clock} gradient="from-orange-500 to-orange-600" />
         </div>
 
-        {/* Credit Financial Banner */}
+        {/* ── Credit Financial Banner ── */}
         {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
-          <div className="rounded-xl border bg-gradient-to-r from-purple-50 via-blue-50 to-emerald-50 shadow-sm p-4 mb-4 flex flex-wrap gap-6 items-center">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center shadow">
-                <DollarSign className="h-5 w-5 text-white" />
+          <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-xl p-5 mb-5 flex flex-wrap gap-8 items-center">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-blue-300" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-600">Total Credit Requested</p>
-                <p className="text-xl font-bold text-blue-800">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-300 mb-0.5">Credit Requested</p>
+                <p className="text-2xl font-black">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-600 flex items-center justify-center shadow">
-                <TrendingUp className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-emerald-300" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Supplier Credit Received</p>
-                <p className="text-xl font-bold text-emerald-800">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300 mb-0.5">Supplier Credited</p>
+                <p className="text-2xl font-black">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
             {stats.totalRequestedCredit > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-purple-600 flex items-center justify-center shadow">
-                  <Activity className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-4">
+                <div className={cn("h-12 w-12 rounded-xl border flex items-center justify-center",
+                  stats.totalRequestedCredit - stats.totalSupplierCredit > 0
+                    ? "bg-rose-500/20 border-rose-400/30" : "bg-emerald-500/20 border-emerald-400/30")}>
+                  <Activity className={cn("h-6 w-6", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-300" : "text-emerald-300")} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-purple-600">Outstanding Balance</p>
-                  <p className={cn("text-xl font-bold", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-700" : "text-emerald-700")}>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-0.5">Outstanding</p>
+                  <p className={cn("text-2xl font-black", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-300" : "text-emerald-300")}>
                     R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
-                    <span className="text-xs font-normal ml-1">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed" : "over-credited"}</span>
                   </p>
+                  <p className="text-[11px] text-white/40">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed to us" : "over-credited"}</p>
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Dashboard panel */}
-        {showDashboard && (
-          <div className="rounded-xl border bg-card shadow-sm p-5 mb-5">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">Live Dashboard</h2>
-              <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live
-              </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">By Type</p>
-                {(["RFC","GRS","GRN"] as const).map(t => (
-                  <div key={t} className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{t}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 rounded-full bg-blue-200 w-[60px] overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full transition-all duration-700" style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
-                      </div>
-                      <span className="text-sm font-semibold w-5 text-right">{stats.byType[t]}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Status</p>
-                {([
-                  { k: "credit_processed", label: "Credit Processed", color: "bg-purple-500" },
-                  { k: "completed", label: "Completed", color: "bg-emerald-500" },
-                  { k: "in_progress", label: "In Progress", color: "bg-cyan-500" },
-                  { k: "started", label: "Started", color: "bg-blue-500" },
-                  { k: "pending", label: "Pending", color: "bg-amber-500" },
-                  { k: "incomplete", label: "Incomplete", color: "bg-orange-500" },
-                  { k: "missing", label: "Missing", color: "bg-rose-500" },
-                ] as const).map(({ k, label, color }) => {
-                  const count = data.filter(d => d.status === k).length;
-                  if (count === 0) return null;
-                  return (
-                    <div key={k} className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-muted-foreground">{label}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
-                          <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(count / stats.total) * 100}%` : "0%" }} />
-                        </div>
-                        <span className="text-sm font-semibold w-5 text-right">{count}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Product</p>
-                {[
-                  { label: "Laptop", val: stats.byProduct.laptop, color: "bg-sky-500" },
-                  { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
-                  { label: "RMA", val: stats.byProduct.rma, color: "bg-amber-500" },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground">{label}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
-                      </div>
-                      <span className="text-sm font-semibold w-5 text-right">{val}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit</p>
-                {[
-                  { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
-                  { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
-                  { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
-                ].map(({ label, val, color }) => (
-                  <div key={label} className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground">{label}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 rounded-full bg-muted w-[60px] overflow-hidden">
-                        <div className={cn("h-full rounded-full transition-all duration-700", color)} style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
-                      </div>
-                      <span className="text-sm font-semibold w-5 text-right">{val}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="ml-auto flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Live tracking
             </div>
           </div>
         )}
 
-        {/* Filters */}
+        {/* ── Live Dashboard ── */}
+        <div className="rounded-2xl border bg-white dark:bg-card shadow-sm p-5 mb-5">
+          <div className="flex items-center gap-2 mb-5">
+            <BarChart3 className="h-4 w-4 text-slate-600" />
+            <h2 className="text-sm font-bold text-slate-800 dark:text-foreground">Live Dashboard</h2>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* By Type */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Document Type</p>
+              {(["RFC","GRS","GRN"] as const).map((t, i) => (
+                <div key={t} className="mb-3">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-600">{t}</span>
+                    <span className="text-xs font-black text-slate-800">{stats.byType[t]}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-1000", ["bg-blue-500","bg-indigo-500","bg-violet-500"][i])}
+                      style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Status */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status Breakdown</p>
+              {([
+                { k: "completed", label: "Completed", color: "bg-emerald-500" },
+                { k: "in_progress", label: "In Progress", color: "bg-cyan-500" },
+                { k: "started", label: "Started", color: "bg-blue-500" },
+                { k: "pending", label: "Pending", color: "bg-amber-500" },
+                { k: "incomplete", label: "Incomplete", color: "bg-orange-500" },
+                { k: "missing", label: "Missing", color: "bg-rose-500" },
+              ] as const).map(({ k, label, color }) => {
+                const count = activeData.filter(d => d.status === k).length;
+                if (count === 0) return null;
+                return (
+                  <div key={k} className="mb-2">
+                    <div className="flex justify-between mb-0.5">
+                      <span className="text-xs text-slate-500">{label}</span>
+                      <span className="text-xs font-black text-slate-800">{count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                        style={{ width: activeData.length ? `${(count / activeData.length) * 100}%` : "0%" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Product */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Product Type</p>
+              {[
+                { label: "Laptop", val: stats.byProduct.laptop, color: "bg-sky-500" },
+                { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
+                { label: "RMA", val: stats.byProduct.rma, color: "bg-amber-500" },
+              ].map(({ label, val, color }) => (
+                <div key={label} className="mb-3">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-600">{label}</span>
+                    <span className="text-xs font-black text-slate-800">{val}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Credit */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
+              {[
+                { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
+                { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
+                { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
+                { label: "Credited ✓", val: stats.creditProcessed, color: "bg-purple-500" },
+              ].map(({ label, val, color }) => (
+                <div key={label} className="mb-2">
+                  <div className="flex justify-between mb-0.5">
+                    <span className="text-xs text-slate-500">{label}</span>
+                    <span className="text-xs font-black text-slate-800">{val}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Tab Navigation ── */}
+        <div className="flex items-center gap-1 mb-4 bg-slate-100 dark:bg-muted p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab("active")}
+            className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all",
+              activeTab === "active"
+                ? "bg-white dark:bg-card text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700")}
+          >
+            Active Returns
+            <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded-full",
+              activeTab === "active" ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600")}>
+              {activeData.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab("credited")}
+            className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all",
+              activeTab === "credited"
+                ? "bg-white dark:bg-card text-purple-700 shadow-sm"
+                : "text-slate-500 hover:text-slate-700")}
+          >
+            Credited ✓
+            <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded-full",
+              activeTab === "credited" ? "bg-purple-600 text-white" : "bg-slate-200 text-slate-600")}>
+              {creditedData.length}
+            </span>
+          </button>
+        </div>
+
+        {/* ── Filters ── */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-1 min-w-[220px] rounded-md border bg-card px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-2 flex-1 min-w-[220px] rounded-xl border bg-white dark:bg-card px-3 py-2 shadow-sm">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               value={search}
@@ -1003,22 +1085,24 @@ function ReturnsTrackerPage() {
               placeholder="Search ref, job no., serial, store, notes…"
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
+            {search && <button onClick={() => setSearch("")} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] bg-card"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="started">Started</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="incomplete">Incomplete</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="credit_processed">Credit Processed</SelectItem>
-              <SelectItem value="missing">Missing</SelectItem>
-            </SelectContent>
-          </Select>
+          {activeTab === "active" && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="started">Started</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="incomplete">Incomplete</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="missing">Missing</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px] bg-card"><SelectValue placeholder="Type" /></SelectTrigger>
+            <SelectTrigger className="w-[130px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="RFC">RFC</SelectItem>
@@ -1027,44 +1111,31 @@ function ReturnsTrackerPage() {
             </SelectContent>
           </Select>
           <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-[170px] bg-card"><SelectValue placeholder="Store" /></SelectTrigger>
+            <SelectTrigger className="w-[170px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Store" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All stores</SelectItem>
               {stores.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          {/* Date range */}
           <div className="flex items-center gap-1.5">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1.5 bg-card outline-none focus:ring-2 focus:ring-primary/20"
-              title="From date"
-            />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm border rounded-xl px-2 py-1.5 bg-white dark:bg-card outline-none focus:ring-2 focus:ring-slate-300" title="From date" />
             <span className="text-muted-foreground text-xs">–</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1.5 bg-card outline-none focus:ring-2 focus:ring-primary/20"
-              title="To date"
-            />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="text-sm border rounded-xl px-2 py-1.5 bg-white dark:bg-card outline-none focus:ring-2 focus:ring-slate-300" title="To date" />
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="text-muted-foreground hover:text-foreground" title="Clear dates">
-                <X className="h-4 w-4" />
-              </button>
+              <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             )}
           </div>
         </div>
 
-        {/* Table */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* ── Table ── */}
+        <div className="rounded-2xl border bg-white dark:bg-card shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[1100px]">
-              <thead className="bg-muted/50 border-b">
-                <tr className="text-left">
+              <thead className="border-b">
+                <tr className="bg-slate-900 text-slate-100 text-left">
                   <Th onClick={() => toggleSort("refType")}>Type</Th>
                   <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
                   <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
@@ -1077,52 +1148,77 @@ function ReturnsTrackerPage() {
                   <Th>Credit</Th>
                   <Th onClick={() => toggleSort("date")}>Date</Th>
                   <Th>Notes</Th>
-                  <th className="px-3 py-2.5 w-[110px]" />
+                  <th className="px-3 py-3 w-[130px]" />
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={13}><div className="py-14 text-center text-muted-foreground"><Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin opacity-40" /><p className="text-foreground font-medium">Loading returns…</p></div></td></tr>
+                  <tr><td colSpan={13}><div className="py-16 text-center text-muted-foreground"><Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin opacity-40" /><p className="font-medium">Loading returns…</p></div></td></tr>
                 ) : isError ? (
-                  <tr><td colSpan={13}><div className="py-14 text-center"><AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500 opacity-60" /><p className="font-medium mb-1">Failed to load data</p><span className="text-sm text-muted-foreground">Please refresh the page.</span></div></td></tr>
+                  <tr><td colSpan={13}><div className="py-14 text-center"><AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500 opacity-60" /><p className="font-medium mb-1">Failed to load data</p></div></td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={13}><div className="py-14 text-center text-muted-foreground"><PackageOpen className="h-10 w-10 mx-auto mb-3 opacity-30" /><p className="text-foreground font-medium mb-1">{data.length === 0 ? "No returns yet" : "No results found"}</p><span className="text-sm">{data.length === 0 ? 'Click "Add Return" to log your first entry.' : "Try adjusting your search or filters."}</span></div></td></tr>
+                  <tr><td colSpan={13}><div className="py-16 text-center text-muted-foreground">
+                    <PackageOpen className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p className="text-foreground font-semibold mb-1">{tableSource.length === 0 ? (activeTab === "credited" ? "No credited returns yet" : "No returns yet") : "No results found"}</p>
+                    <span className="text-sm">{tableSource.length === 0 ? (activeTab === "credited" ? "Move returns here once credited." : 'Click "Add Return" to log your first entry.') : "Try adjusting your search or filters."}</span>
+                  </div></td></tr>
                 ) : (
-                  filtered.map((r) => (
+                  filtered.map((r, idx) => (
                     <tr
                       key={r.id}
-                      className="border-b last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                      className={cn("border-b last:border-0 hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors cursor-pointer",
+                        idx % 2 === 0 ? "" : "bg-slate-50/50 dark:bg-muted/10")}
                       onClick={() => setViewEntry(r)}
                     >
-                      <td className="px-3.5 py-2.5">
-                        <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{r.refType}</span>
+                      <td className="px-3.5 py-3">
+                        <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-900 text-white">{r.refType}</span>
                       </td>
-                      <td className="px-3.5 py-2.5"><span className="font-mono text-xs px-2 py-0.5 rounded border bg-muted/40 text-muted-foreground">{r.refNumber || "—"}</span></td>
-                      <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.jobNumber || "—"}</td>
-                      <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.serialNumber || "—"}</td>
-                      <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
-                      <td className="px-3.5 py-2.5"><ProductTypeCell value={r.productType} /></td>
-                      <td className="px-3.5 py-2.5"><BundleCell value={r.bundle} /></td>
-                      <td className="px-3.5 py-2.5 text-xs text-muted-foreground" title={r.unitLocation}>{r.unitLocation || "—"}</td>
-                      <td className="px-3.5 py-2.5"><StatusBadge status={r.status} /></td>
-                      <td className="px-3.5 py-2.5 text-xs">
+                      <td className="px-3.5 py-3"><span className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg border bg-slate-50 text-slate-700">{r.refNumber || "—"}</span></td>
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.jobNumber || "—"}</td>
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.serialNumber || "—"}</td>
+                      <td className="px-3.5 py-3 font-semibold text-sm text-slate-800 dark:text-foreground">{r.storeName || "—"}</td>
+                      <td className="px-3.5 py-3"><ProductTypeCell value={r.productType} /></td>
+                      <td className="px-3.5 py-3"><BundleCell value={r.bundle} /></td>
+                      <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>{r.unitLocation || "—"}</td>
+                      <td className="px-3.5 py-3"><StatusBadge status={r.status} /></td>
+                      <td className="px-3.5 py-3 text-xs">
                         {r.creditStatus === "supplier_credit" ? (
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-emerald-700">Supplier credit</span>
-                            <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "— no CN —"}</span>
+                          <div>
+                            <span className="font-semibold text-emerald-700 block">Supplier credit</span>
+                            <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "—"}</span>
                           </div>
                         ) : r.creditStatus === "no_physical_unit" ? (
-                          <span className="font-semibold text-rose-700">No physical unit</span>
+                          <span className="font-semibold text-rose-600">No unit</span>
                         ) : (
-                          <span className="font-semibold text-slate-700">Unit on hand</span>
+                          <span className="text-slate-600">On hand</span>
                         )}
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
                         {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes || "—"}</td>
+                      <td className="px-3.5 py-3 text-xs text-slate-500 max-w-[180px] truncate" title={r.notes}>{r.notes || "—"}</td>
                       <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-0.5 justify-end">
+                        <div className="flex items-center gap-1 justify-end">
+                          {activeTab === "active" ? (
+                            <button
+                              title="Mark as Credited"
+                              onClick={() => markCreditedMutation.mutate(r)}
+                              disabled={markCreditedMutation.isPending}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors disabled:opacity-50"
+                            >
+                              {markCreditedMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
+                              Credit
+                            </button>
+                          ) : (
+                            <button
+                              title="Move back to Active"
+                              onClick={() => restoreActiveMutation.mutate(r)}
+                              disabled={restoreActiveMutation.isPending}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50"
+                            >
+                              ↩ Restore
+                            </button>
+                          )}
                           <IconBtn label="Edit" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
                           <IconBtn label="Delete" danger onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></IconBtn>
                         </div>
@@ -1133,12 +1229,19 @@ function ReturnsTrackerPage() {
               </tbody>
             </table>
           </div>
+          {filtered.length > 0 && (
+            <div className="px-4 py-2.5 border-t bg-slate-50 dark:bg-muted/20 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Showing <strong>{filtered.length}</strong> of <strong>{tableSource.length}</strong> {activeTab === "credited" ? "credited" : "active"} returns</p>
+              {activeTab === "active" && activeData.length > 0 && <p className="text-xs text-muted-foreground">Click any row to view full details · Use <strong>Credit</strong> button to move to Credited tab</p>}
+            </div>
+          )}
         </div>
 
         <p className="text-xs text-muted-foreground mt-4 text-center">
-          Your data is saved to the cloud and will persist across sessions.
+          Returns Tracker · Omni Technical Solutions · Data saved to cloud
         </p>
       </div>
+
 
       {/* Add / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
@@ -1433,20 +1536,28 @@ function ReturnsTrackerPage() {
 
 // ── Shared components ──
 
-function StatCard({ label, value, tone }: { label: string; value: number; tone?: "success" | "warn" | "info" | "danger" }) {
-  const toneCls = tone === "success" ? "text-emerald-700" : tone === "warn" ? "text-amber-700" : tone === "info" ? "text-blue-700" : tone === "danger" ? "text-rose-700" : "text-foreground";
+function AnimatedStatCard({ label, value, icon: Icon, gradient }: { label: string; value: number; icon: React.ElementType; gradient: string }) {
+  const animated = useCountUp(value);
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</div>
-      <div className={cn("text-2xl font-semibold tracking-tight", toneCls)}>{value}</div>
+    <div className="relative overflow-hidden rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+      <div className={cn("absolute inset-0 bg-gradient-to-br", gradient)} />
+      <div className="relative p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">{label}</p>
+          <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+            <Icon className="h-4 w-4 text-white/90" />
+          </div>
+        </div>
+        <p className="text-3xl font-black text-white tabular-nums">{animated}</p>
+      </div>
     </div>
   );
 }
 
 function Th({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <th onClick={onClick} className={cn("px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap select-none", onClick && "cursor-pointer hover:text-foreground")}>
-      <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-40" />}</span>
+    <th onClick={onClick} className={cn("px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-300 whitespace-nowrap select-none", onClick && "cursor-pointer hover:text-white")}>
+      <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}</span>
     </th>
   );
 }
