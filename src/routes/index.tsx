@@ -471,26 +471,6 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             </div>
           </div>
         </div>
-      </div>
-      <div className="overflow-auto flex-1 p-4 flex items-center justify-center bg-muted/20">
-        {imageModal.url.toLowerCase().includes('.pdf') || imageModal.url.toLowerCase().includes('application/pdf') ? (
-          <iframe
-            src={imageModal.url}
-            className="w-full rounded border"
-            style={{ height: '70vh' }}
-            title={imageModal.label}
-          />
-        ) : (
-          <img
-            src={imageModal.url}
-            alt={imageModal.label}
-            className="max-w-full max-h-[70vh] object-contain rounded"
-          />
-        )}
-      </div>
-    </div>
-  </div>
-)}
       )}
     </div>
   );
