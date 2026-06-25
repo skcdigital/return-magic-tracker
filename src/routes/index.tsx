@@ -868,122 +868,123 @@ function ReturnsTrackerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-background">
+    <div className="min-h-screen bg-[#f4f5f7]">
+      {/* ── Topnav ── */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="mx-auto max-w-[1320px] px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-slate-900 text-white flex items-center justify-center">
+              <PackageOpen className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-sm text-slate-900 tracking-tight">Returns Tracker</span>
+            <span className="hidden sm:block text-slate-300 text-sm">|</span>
+            <span className="hidden sm:block text-xs text-slate-400">Omni Technical Solutions</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 text-xs h-8 px-3" onClick={copyReadOnlyLink}>
+              {copyToast ? <><Check className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />Copied!</> : <><Eye className="h-3.5 w-3.5 mr-1.5" />Share</>}
+            </Button>
+            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 text-xs h-8 px-3" onClick={exportExcel} disabled={data.length === 0}>
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />Export
+            </Button>
+            <Button size="sm" className="h-8 px-4 text-xs bg-slate-900 hover:bg-slate-800 text-white" onClick={openAdd}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />Add Return
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-[1320px] px-4 sm:px-6 py-6 pb-16">
 
-        {/* ── Top bar ── */}
-        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center shadow-lg">
-              <PackageOpen className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">Returns Tracker</h1>
-              <p className="text-xs text-muted-foreground">Omni Technical Solutions · RFC / GRS / GRN retail credit returns</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={copyReadOnlyLink}>
-              {copyToast ? <><Check className="h-4 w-4 text-emerald-600" /> Copied!</> : <><Eye className="h-4 w-4" /> Share view</>}
-            </Button>
-            <Button variant="outline" size="sm" onClick={exportExcel} disabled={data.length === 0}>
-              <FileSpreadsheet className="h-4 w-4" /> Export Excel
-            </Button>
-            <Button size="sm" className="bg-slate-900 hover:bg-slate-800 text-white" onClick={openAdd}>
-              <Plus className="h-4 w-4" /> Add Return
-            </Button>
-          </div>
-        </header>
-
-        {/* ── Animated Stats Strip ── */}
+        {/* ── KPI Cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-          <AnimatedStatCard label="Total" value={stats.total} icon={PackageOpen} gradient="from-slate-700 to-slate-900" />
-          <AnimatedStatCard label="Active" value={stats.started + stats.inProgress + stats.pending + stats.incomplete} icon={Activity} gradient="from-blue-500 to-blue-700" />
-          <AnimatedStatCard label="Completed" value={stats.completed} icon={CheckCircle2} gradient="from-emerald-500 to-emerald-700" />
-          <AnimatedStatCard label="Credited ✓" value={stats.creditProcessed} icon={CreditCard} gradient="from-purple-500 to-purple-700" />
-          <AnimatedStatCard label="Missing" value={stats.missing} icon={AlertTriangle} gradient="from-rose-500 to-rose-700" />
-          <AnimatedStatCard label="Incomplete" value={stats.incomplete} icon={Clock} gradient="from-orange-500 to-orange-600" />
+          <AnimatedStatCard label="Total Returns"  value={stats.total}                                                              accent="border-slate-400"  numCls="text-slate-900" />
+          <AnimatedStatCard label="Active"          value={stats.started + stats.inProgress + stats.pending + stats.incomplete}     accent="border-blue-500"   numCls="text-blue-700"  />
+          <AnimatedStatCard label="Completed"       value={stats.completed}                                                         accent="border-emerald-500" numCls="text-emerald-700" />
+          <AnimatedStatCard label="Credited ✓"      value={stats.creditProcessed}                                                   accent="border-violet-500" numCls="text-violet-700" />
+          <AnimatedStatCard label="Missing"         value={stats.missing}                                                           accent="border-rose-500"   numCls="text-rose-700"  />
+          <AnimatedStatCard label="Incomplete"      value={stats.incomplete}                                                        accent="border-amber-500"  numCls="text-amber-700" />
         </div>
 
         {/* ── Credit Financial Banner ── */}
         {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
-          <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white shadow-xl p-5 mb-5 flex flex-wrap gap-8 items-center">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-blue-300" />
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-wrap gap-6 items-stretch divide-x divide-slate-100">
+            <div className="flex items-center gap-3 pr-6">
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <DollarSign className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-blue-300 mb-0.5">Credit Requested</p>
-                <p className="text-2xl font-black">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Requested</p>
+                <p className="text-lg font-black text-slate-900 leading-tight">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-emerald-300" />
+            <div className="flex items-center gap-3 px-6">
+              <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300 mb-0.5">Supplier Credited</p>
-                <p className="text-2xl font-black">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Credited</p>
+                <p className="text-lg font-black text-emerald-700 leading-tight">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
             {stats.totalRequestedCredit > 0 && (
-              <div className="flex items-center gap-4">
-                <div className={cn("h-12 w-12 rounded-xl border flex items-center justify-center",
-                  stats.totalRequestedCredit - stats.totalSupplierCredit > 0
-                    ? "bg-rose-500/20 border-rose-400/30" : "bg-emerald-500/20 border-emerald-400/30")}>
-                  <Activity className={cn("h-6 w-6", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-300" : "text-emerald-300")} />
+              <div className="flex items-center gap-3 pl-6">
+                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0",
+                  stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "bg-rose-50" : "bg-emerald-50")}>
+                  <Activity className={cn("h-4 w-4", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-600" : "text-emerald-600")} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-0.5">Outstanding</p>
-                  <p className={cn("text-2xl font-black", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-300" : "text-emerald-300")}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Outstanding</p>
+                  <p className={cn("text-lg font-black leading-tight", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-600" : "text-emerald-700")}>
                     R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[11px] text-white/40">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed to us" : "over-credited"}</p>
+                  <p className="text-[10px] text-slate-400">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed" : "over-credited"}</p>
                 </div>
               </div>
             )}
-            <div className="ml-auto flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Live tracking
+            <div className="ml-auto flex items-center gap-1.5 pl-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] text-slate-400 font-medium">Live</span>
             </div>
           </div>
         )}
 
         {/* ── Live Dashboard ── */}
-        <div className="rounded-2xl border bg-white dark:bg-card shadow-sm p-5 mb-5">
-          <div className="flex items-center gap-2 mb-5">
-            <BarChart3 className="h-4 w-4 text-slate-600" />
-            <h2 className="text-sm font-bold text-slate-800 dark:text-foreground">Live Dashboard</h2>
-            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-slate-400" />
+              <h2 className="text-sm font-semibold text-slate-700">Overview</h2>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* By Type */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Document Type</p>
-              {(["RFC","GRS","GRN"] as const).map((t, i) => (
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Document Type</p>
+              {(["RFC","GRS","GRN"] as const).map((t) => (
                 <div key={t} className="mb-3">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-600">{t}</span>
-                    <span className="text-xs font-black text-slate-800">{stats.byType[t]}</span>
+                    <span className="text-xs font-medium text-slate-600">{t}</span>
+                    <span className="text-xs font-bold text-slate-800">{stats.byType[t]}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-1000", ["bg-blue-500","bg-indigo-500","bg-violet-500"][i])}
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-slate-700 transition-all duration-700"
                       style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
                   </div>
                 </div>
               ))}
             </div>
-            {/* Status */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status Breakdown</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Status</p>
               {([
-                { k: "completed", label: "Completed", color: "bg-emerald-500" },
-                { k: "in_progress", label: "In Progress", color: "bg-cyan-500" },
-                { k: "started", label: "Started", color: "bg-blue-500" },
-                { k: "pending", label: "Pending", color: "bg-amber-500" },
-                { k: "incomplete", label: "Incomplete", color: "bg-orange-500" },
-                { k: "missing", label: "Missing", color: "bg-rose-500" },
+                { k: "completed",   label: "Completed",   color: "bg-emerald-500" },
+                { k: "in_progress", label: "In Progress", color: "bg-blue-500"    },
+                { k: "started",     label: "Started",     color: "bg-sky-400"     },
+                { k: "pending",     label: "Pending",     color: "bg-amber-400"   },
+                { k: "incomplete",  label: "Incomplete",  color: "bg-orange-400"  },
+                { k: "missing",     label: "Missing",     color: "bg-rose-500"    },
               ] as const).map(({ k, label, color }) => {
                 const count = activeData.filter(d => d.status === k).length;
                 if (count === 0) return null;
@@ -991,52 +992,50 @@ function ReturnsTrackerPage() {
                   <div key={k} className="mb-2">
                     <div className="flex justify-between mb-0.5">
                       <span className="text-xs text-slate-500">{label}</span>
-                      <span className="text-xs font-black text-slate-800">{count}</span>
+                      <span className="text-xs font-bold text-slate-700">{count}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                      <div className={cn("h-full rounded-full transition-all duration-700", color)}
                         style={{ width: activeData.length ? `${(count / activeData.length) * 100}%` : "0%" }} />
                     </div>
                   </div>
                 );
               })}
             </div>
-            {/* Product */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Product Type</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Product</p>
               {[
-                { label: "Laptop", val: stats.byProduct.laptop, color: "bg-sky-500" },
+                { label: "Laptop",  val: stats.byProduct.laptop,  color: "bg-sky-500"    },
                 { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
-                { label: "RMA", val: stats.byProduct.rma, color: "bg-amber-500" },
+                { label: "RMA",     val: stats.byProduct.rma,     color: "bg-amber-500"  },
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-3">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-600">{label}</span>
-                    <span className="text-xs font-black text-slate-800">{val}</span>
+                    <span className="text-xs font-medium text-slate-600">{label}</span>
+                    <span className="text-xs font-bold text-slate-800">{val}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
                       style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
                   </div>
                 </div>
               ))}
             </div>
-            {/* Credit */}
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
               {[
-                { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
-                { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
-                { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
-                { label: "Credited ✓", val: stats.creditProcessed, color: "bg-purple-500" },
+                { label: "Supplier Credit",   val: stats.supplierCredit,   color: "bg-emerald-500" },
+                { label: "Unit on Hand",      val: stats.unitOnHand,       color: "bg-slate-400"   },
+                { label: "No Physical Unit",  val: stats.noPhysicalUnit,   color: "bg-rose-400"    },
+                { label: "Credited ✓",        val: stats.creditProcessed,  color: "bg-violet-500"  },
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-2">
                   <div className="flex justify-between mb-0.5">
                     <span className="text-xs text-slate-500">{label}</span>
-                    <span className="text-xs font-black text-slate-800">{val}</span>
+                    <span className="text-xs font-bold text-slate-700">{val}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-1000", color)}
+                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
                       style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
                   </div>
                 </div>
@@ -1045,51 +1044,49 @@ function ReturnsTrackerPage() {
           </div>
         </div>
 
-        {/* ── Tab Navigation ── */}
-        <div className="flex items-center gap-1 mb-4 bg-slate-100 dark:bg-muted p-1 rounded-xl w-fit">
-          <button
-            onClick={() => setActiveTab("active")}
-            className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all",
-              activeTab === "active"
-                ? "bg-white dark:bg-card text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700")}
-          >
-            Active Returns
-            <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded-full",
-              activeTab === "active" ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600")}>
-              {activeData.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("credited")}
-            className={cn("px-5 py-2 rounded-lg text-sm font-semibold transition-all",
-              activeTab === "credited"
-                ? "bg-white dark:bg-card text-purple-700 shadow-sm"
-                : "text-slate-500 hover:text-slate-700")}
-          >
-            Credited ✓
-            <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded-full",
-              activeTab === "credited" ? "bg-purple-600 text-white" : "bg-slate-200 text-slate-600")}>
-              {creditedData.length}
-            </span>
-          </button>
+        {/* ── Tabs + Filter row ── */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
+            <button
+              onClick={() => setActiveTab("active")}
+              className={cn("px-4 py-2 text-sm font-medium transition-colors border-r border-slate-200",
+                activeTab === "active" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")}
+            >
+              Active
+              <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded",
+                activeTab === "active" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600")}>
+                {activeData.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("credited")}
+              className={cn("px-4 py-2 text-sm font-medium transition-colors",
+                activeTab === "credited" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")}
+            >
+              Credited ✓
+              <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded",
+                activeTab === "credited" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600")}>
+                {creditedData.length}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* ── Filters ── */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-1 min-w-[220px] rounded-xl border bg-white dark:bg-card px-3 py-2 shadow-sm">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 flex-1 min-w-[220px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+            <Search className="h-4 w-4 text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search ref, job no., serial, store, notes…"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 text-slate-700"
             />
-            {search && <button onClick={() => setSearch("")} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>}
+            {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700"><X className="h-3.5 w-3.5" /></button>}
           </div>
           {activeTab === "active" && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-[150px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All statuses" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
@@ -1102,7 +1099,7 @@ function ReturnsTrackerPage() {
             </Select>
           )}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Type" /></SelectTrigger>
+            <SelectTrigger className="w-[120px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All types" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="RFC">RFC</SelectItem>
@@ -1111,31 +1108,31 @@ function ReturnsTrackerPage() {
             </SelectContent>
           </Select>
           <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-[170px] bg-white dark:bg-card rounded-xl"><SelectValue placeholder="Store" /></SelectTrigger>
+            <SelectTrigger className="w-[165px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All stores" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All stores</SelectItem>
               {stores.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-1.5">
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm">
+            <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="text-sm border rounded-xl px-2 py-1.5 bg-white dark:bg-card outline-none focus:ring-2 focus:ring-slate-300" title="From date" />
-            <span className="text-muted-foreground text-xs">–</span>
+              className="text-sm bg-transparent outline-none text-slate-700" title="From date" />
+            <span className="text-slate-300 text-xs">–</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="text-sm border rounded-xl px-2 py-1.5 bg-white dark:bg-card outline-none focus:ring-2 focus:ring-slate-300" title="To date" />
+              className="text-sm bg-transparent outline-none text-slate-700" title="To date" />
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="text-slate-400 hover:text-slate-700"><X className="h-3.5 w-3.5" /></button>
             )}
           </div>
         </div>
 
         {/* ── Table ── */}
-        <div className="rounded-2xl border bg-white dark:bg-card shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[1100px]">
-              <thead className="border-b">
-                <tr className="bg-slate-900 text-slate-100 text-left">
+              <thead>
+                <tr className="bg-slate-900 text-slate-300 text-left border-b border-slate-800">
                   <Th onClick={() => toggleSort("refType")}>Type</Th>
                   <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
                   <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
@@ -1166,8 +1163,8 @@ function ReturnsTrackerPage() {
                   filtered.map((r, idx) => (
                     <tr
                       key={r.id}
-                      className={cn("border-b last:border-0 hover:bg-slate-50 dark:hover:bg-muted/30 transition-colors cursor-pointer",
-                        idx % 2 === 0 ? "" : "bg-slate-50/50 dark:bg-muted/10")}
+                      className={cn("border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer",
+                        idx % 2 === 0 ? "bg-white" : "bg-slate-50/40")}
                       onClick={() => setViewEntry(r)}
                     >
                       <td className="px-3.5 py-3">
@@ -1230,15 +1227,15 @@ function ReturnsTrackerPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="px-4 py-2.5 border-t bg-slate-50 dark:bg-muted/20 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Showing <strong>{filtered.length}</strong> of <strong>{tableSource.length}</strong> {activeTab === "credited" ? "credited" : "active"} returns</p>
-              {activeTab === "active" && activeData.length > 0 && <p className="text-xs text-muted-foreground">Click any row to view full details · Use <strong>Credit</strong> button to move to Credited tab</p>}
+            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              <p className="text-xs text-slate-400">Showing <strong className="text-slate-600">{filtered.length}</strong> of <strong className="text-slate-600">{tableSource.length}</strong> entries</p>
+              {activeTab === "active" && <p className="text-xs text-slate-400 hidden sm:block">Click a row for details · Use <strong>Credit</strong> to move to Credited</p>}
             </div>
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground mt-4 text-center">
-          Returns Tracker · Omni Technical Solutions · Data saved to cloud
+        <p className="text-xs text-slate-400 mt-4 text-center">
+          Omni Technical Solutions · Returns Tracker · Data saved to cloud
         </p>
       </div>
 
@@ -1536,20 +1533,12 @@ function ReturnsTrackerPage() {
 
 // ── Shared components ──
 
-function AnimatedStatCard({ label, value, icon: Icon, gradient }: { label: string; value: number; icon: React.ElementType; gradient: string }) {
+function AnimatedStatCard({ label, value, accent, numCls }: { label: string; value: number; accent: string; numCls: string }) {
   const animated = useCountUp(value);
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-md hover:shadow-lg transition-shadow">
-      <div className={cn("absolute inset-0 bg-gradient-to-br", gradient)} />
-      <div className="relative p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">{label}</p>
-          <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
-            <Icon className="h-4 w-4 text-white/90" />
-          </div>
-        </div>
-        <p className="text-3xl font-black text-white tabular-nums">{animated}</p>
-      </div>
+    <div className={cn("bg-white rounded-xl border-l-4 border border-slate-200 p-4 shadow-sm", accent.replace("border-", "border-l-"))}>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+      <p className={cn("text-3xl font-black tabular-nums", numCls)}>{animated}</p>
     </div>
   );
 }
