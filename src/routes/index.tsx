@@ -184,7 +184,12 @@ function ProductTypeCell({ value }: { value: ProductType }) {
   };
   const { label, color } = config[value] || config.laptop;
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset", color)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+        color,
+      )}
+    >
       {label}
     </span>
   );
@@ -239,7 +244,14 @@ function StatusBadge({ status }: { status: Status }) {
 
 type SortKey = keyof Pick<
   ReturnEntry,
-  "refType" | "refNumber" | "jobNumber" | "serialNumber" | "storeName" | "unitLocation" | "status" | "date"
+  | "refType"
+  | "refNumber"
+  | "jobNumber"
+  | "serialNumber"
+  | "storeName"
+  | "unitLocation"
+  | "status"
+  | "date"
 >;
 
 type AppTab = "active" | "credited";
@@ -255,7 +267,9 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return data.filter((r) => {
-      const hay = [r.refNumber, r.jobNumber, r.serialNumber, r.storeName, r.notes].join(" ").toLowerCase();
+      const hay = [r.refNumber, r.jobNumber, r.serialNumber, r.storeName, r.notes]
+        .join(" ")
+        .toLowerCase();
       if (q && !hay.includes(q)) return false;
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (typeFilter !== "all" && r.refType !== typeFilter) return false;
@@ -287,12 +301,29 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
             { label: "Total Returns", value: data.length, cls: "text-slate-800" },
-            { label: "Completed", value: data.filter(d => d.status === "completed" || d.status === "credit_processed").length, cls: "text-emerald-700" },
-            { label: "Pending / Active", value: data.filter(d => ["pending","started","in_progress","incomplete"].includes(d.status)).length, cls: "text-amber-700" },
-            { label: "Missing", value: data.filter(d => d.status === "missing").length, cls: "text-rose-700" },
+            {
+              label: "Completed",
+              value: data.filter((d) => d.status === "completed" || d.status === "credit_processed")
+                .length,
+              cls: "text-emerald-700",
+            },
+            {
+              label: "Pending / Active",
+              value: data.filter((d) =>
+                ["pending", "started", "in_progress", "incomplete"].includes(d.status),
+              ).length,
+              cls: "text-amber-700",
+            },
+            {
+              label: "Missing",
+              value: data.filter((d) => d.status === "missing").length,
+              cls: "text-rose-700",
+            },
           ].map(({ label, value, cls }) => (
             <div key={label} className="rounded-xl border bg-card p-4 shadow-sm">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                {label}
+              </div>
               <div className={cn("text-2xl font-bold tracking-tight", cls)}>{value}</div>
             </div>
           ))}
@@ -309,7 +340,9 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px] bg-card"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[150px] bg-card">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
@@ -319,7 +352,9 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px] bg-card"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] bg-card">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="RFC">RFC</SelectItem>
@@ -334,8 +369,27 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-muted/50 border-b">
                 <tr className="text-left">
-                  {["Type","Reference","Job No.","Serial No.","Store","Product","Bundle","Location","Status","Credit","Date","Notes","Images"].map(h => (
-                    <th key={h} className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">{h}</th>
+                  {[
+                    "Type",
+                    "Reference",
+                    "Job No.",
+                    "Serial No.",
+                    "Store",
+                    "Product",
+                    "Bundle",
+                    "Location",
+                    "Status",
+                    "Credit",
+                    "Date",
+                    "Notes",
+                    "Images",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -347,21 +401,41 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     onClick={() => setViewEntry(r)}
                   >
                     <td className="px-3.5 py-2.5">
-                      <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">{r.refType}</span>
+                      <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">
+                        {r.refType}
+                      </span>
                     </td>
-                    <td className="px-3.5 py-2.5"><span className="font-mono text-xs px-2 py-0.5 rounded border bg-muted/40 text-muted-foreground">{r.refNumber || "—"}</span></td>
-                    <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.jobNumber || "—"}</td>
-                    <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">{r.serialNumber || "—"}</td>
+                    <td className="px-3.5 py-2.5">
+                      <span className="font-mono text-xs px-2 py-0.5 rounded border bg-muted/40 text-muted-foreground">
+                        {r.refNumber || "—"}
+                      </span>
+                    </td>
+                    <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">
+                      {r.jobNumber || "—"}
+                    </td>
+                    <td className="px-3.5 py-2.5 font-mono text-xs text-muted-foreground">
+                      {r.serialNumber || "—"}
+                    </td>
                     <td className="px-3.5 py-2.5 font-medium">{r.storeName || "—"}</td>
-                    <td className="px-3.5 py-2.5"><ProductTypeCell value={r.productType} /></td>
-                    <td className="px-3.5 py-2.5"><BundleCell value={r.bundle} /></td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground">{r.unitLocation || "—"}</td>
-                    <td className="px-3.5 py-2.5"><StatusBadge status={r.status} /></td>
+                    <td className="px-3.5 py-2.5">
+                      <ProductTypeCell value={r.productType} />
+                    </td>
+                    <td className="px-3.5 py-2.5">
+                      <BundleCell value={r.bundle} />
+                    </td>
+                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground">
+                      {r.unitLocation || "—"}
+                    </td>
+                    <td className="px-3.5 py-2.5">
+                      <StatusBadge status={r.status} />
+                    </td>
                     <td className="px-3.5 py-2.5 text-xs">
                       {r.creditStatus === "supplier_credit" ? (
                         <div className="flex flex-col">
                           <span className="font-semibold text-emerald-700">Supplier credit</span>
-                          <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "— no CN —"}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {r.creditNoteNumber || "— no CN —"}
+                          </span>
                         </div>
                       ) : r.creditStatus === "no_physical_unit" ? (
                         <span className="font-semibold text-rose-700">No physical unit</span>
@@ -372,12 +446,22 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                       {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                     </td>
-                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>{r.notes || "—"}</td>
-                    <td className="px-3.5 py-2.5 text-xs" onClick={e => e.stopPropagation()}>
+                    <td
+                      className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate"
+                      title={r.notes}
+                    >
+                      {r.notes || "—"}
+                    </td>
+                    <td className="px-3.5 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         {r.grsRfcGrnImageUrl && (
                           <button
-                            onClick={() => setImageModal({ url: r.grsRfcGrnImageUrl, label: "GRS/RFC/GRN Document" })}
+                            onClick={() =>
+                              setImageModal({
+                                url: r.grsRfcGrnImageUrl,
+                                label: "GRS/RFC/GRN Document",
+                              })
+                            }
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-[11px] cursor-pointer transition-colors"
                           >
                             📄 GRS/RFC/GRN
@@ -385,7 +469,12 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                         )}
                         {r.supplierCreditImageUrl && (
                           <button
-                            onClick={() => setImageModal({ url: r.supplierCreditImageUrl, label: "Supplier Credit Note" })}
+                            onClick={() =>
+                              setImageModal({
+                                url: r.supplierCreditImageUrl,
+                                label: "Supplier Credit Note",
+                              })
+                            }
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-semibold text-[11px] cursor-pointer transition-colors"
                           >
                             💳 Credit Note
@@ -396,30 +485,52 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={13} className="py-14 text-center text-muted-foreground text-sm">No results found.</td></tr>
+                  <tr>
+                    <td colSpan={13} className="py-14 text-center text-muted-foreground text-sm">
+                      No results found.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-4 text-center">Read-only view · Omni Technical Solutions</p>
+        <p className="text-xs text-muted-foreground mt-4 text-center">
+          Read-only view · Omni Technical Solutions
+        </p>
       </div>
 
       {/* Detail modal for read-only */}
       {viewEntry && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewEntry(null)}>
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setViewEntry(null)}
+        >
+          <div
+            className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">{viewEntry.refType}</span>
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">
+                  {viewEntry.refType}
+                </span>
                 <div>
                   <p className="text-white font-bold text-lg">{viewEntry.refNumber || "—"}</p>
-                  <p className="text-white/60 text-xs">{viewEntry.storeName || "No store"} · {viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy") : "—"}</p>
+                  <p className="text-white/60 text-xs">
+                    {viewEntry.storeName || "No store"} ·{" "}
+                    {viewEntry.date
+                      ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy")
+                      : "—"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={viewEntry.status} />
-                <button onClick={() => setViewEntry(null)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
+                <button
+                  onClick={() => setViewEntry(null)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -427,43 +538,100 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             <div className="p-5 grid grid-cols-2 gap-x-8 gap-y-4">
               <DetailRow label="Job Number" value={viewEntry.jobNumber} mono />
               <DetailRow label="Serial Number" value={viewEntry.serialNumber} mono />
-              <DetailRow label="Product" value={<ProductTypeCell value={viewEntry.productType} />} />
+              <DetailRow
+                label="Product"
+                value={<ProductTypeCell value={viewEntry.productType} />}
+              />
               <DetailRow label="Bundle" value={<BundleCell value={viewEntry.bundle} />} />
               <DetailRow label="Unit Location" value={viewEntry.unitLocation} />
-              <DetailRow label="Date" value={viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy") : "—"} />
+              <DetailRow
+                label="Date"
+                value={
+                  viewEntry.date
+                    ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy")
+                    : "—"
+                }
+              />
               <div className="col-span-2 border-t pt-3 mt-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit Information</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  Credit Information
+                </p>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <DetailRow label="Credit Status" value={
-                    viewEntry.creditStatus === "supplier_credit"
-                      ? <span className="text-emerald-700 font-semibold">Supplier Credit</span>
-                      : viewEntry.creditStatus === "no_physical_unit"
-                      ? <span className="text-rose-700 font-semibold">No Physical Unit</span>
-                      : <span className="text-slate-700 font-semibold">Unit on Hand</span>
-                  } />
-                  {viewEntry.creditNoteNumber && <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />}
-                  {viewEntry.requestedCreditAmount && <DetailRow label="Credit Requested" value={<span className="font-bold text-blue-700">R {viewEntry.requestedCreditAmount}</span>} />}
-                  {viewEntry.supplierCreditAmount && <DetailRow label="Supplier Credited" value={<span className="font-bold text-emerald-700">R {viewEntry.supplierCreditAmount}</span>} />}
+                  <DetailRow
+                    label="Credit Status"
+                    value={
+                      viewEntry.creditStatus === "supplier_credit" ? (
+                        <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                      ) : viewEntry.creditStatus === "no_physical_unit" ? (
+                        <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                      ) : (
+                        <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                      )
+                    }
+                  />
+                  {viewEntry.creditNoteNumber && (
+                    <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />
+                  )}
+                  {viewEntry.requestedCreditAmount && (
+                    <DetailRow
+                      label="Credit Requested"
+                      value={
+                        <span className="font-bold text-blue-700">
+                          R {viewEntry.requestedCreditAmount}
+                        </span>
+                      }
+                    />
+                  )}
+                  {viewEntry.supplierCreditAmount && (
+                    <DetailRow
+                      label="Supplier Credited"
+                      value={
+                        <span className="font-bold text-emerald-700">
+                          R {viewEntry.supplierCreditAmount}
+                        </span>
+                      }
+                    />
+                  )}
                 </div>
               </div>
               {viewEntry.notes && (
                 <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Notes</p>
-                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{viewEntry.notes}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Notes
+                  </p>
+                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">
+                    {viewEntry.notes}
+                  </p>
                 </div>
               )}
               {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
                 <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Attached Documents</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Attached Documents
+                  </p>
                   <div className="flex flex-wrap gap-3">
-                    {viewEntry.grsRfcGrnImageUrl && <DocPreview url={viewEntry.grsRfcGrnImageUrl} label="GRS/RFC/GRN Document" color="blue" />}
-                    {viewEntry.supplierCreditImageUrl && <DocPreview url={viewEntry.supplierCreditImageUrl} label="Supplier Credit Note" color="emerald" />}
+                    {viewEntry.grsRfcGrnImageUrl && (
+                      <DocPreview
+                        url={viewEntry.grsRfcGrnImageUrl}
+                        label="GRS/RFC/GRN Document"
+                        color="blue"
+                      />
+                    )}
+                    {viewEntry.supplierCreditImageUrl && (
+                      <DocPreview
+                        url={viewEntry.supplierCreditImageUrl}
+                        label="Supplier Credit Note"
+                        color="emerald"
+                      />
+                    )}
                   </div>
                 </div>
               )}
             </div>
             <div className="flex justify-end px-5 pb-5 pt-2 border-t">
-              <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>Close</Button>
+              <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>
+                Close
+              </Button>
             </div>
           </div>
         </div>
@@ -490,14 +658,30 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             </div>
             <div className="p-4">
               {imageModal.url.startsWith("data:application/pdf") ? (
-                <object data={imageModal.url} type="application/pdf" className="w-full min-h-[600px]">
+                <object
+                  data={imageModal.url}
+                  type="application/pdf"
+                  className="w-full min-h-[600px]"
+                >
                   <p className="text-sm text-muted-foreground">
                     PDF preview is not supported by your browser.
-                    <a href={imageModal.url} target="_blank" rel="noreferrer" className="text-blue-600 underline ml-1">Open PDF in a new tab</a>.
+                    <a
+                      href={imageModal.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 underline ml-1"
+                    >
+                      Open PDF in a new tab
+                    </a>
+                    .
                   </p>
                 </object>
               ) : (
-                <img src={imageModal.url} alt={imageModal.label} className="w-full max-h-[600px] object-contain" />
+                <img
+                  src={imageModal.url}
+                  alt={imageModal.label}
+                  className="w-full max-h-[600px] object-contain"
+                />
               )}
             </div>
           </div>
@@ -516,7 +700,7 @@ function ReturnsTrackerPage() {
 
   // Check for read-only mode via URL param ?view=readonly
   const [isReadOnly, setIsReadOnly] = useState(false);
-  
+
   // Use effect to check URL params on client-side only (avoids hydration mismatch)
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -525,7 +709,11 @@ function ReturnsTrackerPage() {
     }
   }, []);
 
-  const { data: listData, isLoading, isError } = useQuery({
+  const {
+    data: listData,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["returns"],
     queryFn: () => fetchList(),
   });
@@ -549,31 +737,44 @@ function ReturnsTrackerPage() {
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) => fetchCreate({ data: entry }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); setModalOpen(false); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+      setModalOpen(false);
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: entry }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); setModalOpen(false); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+      setModalOpen(false);
+    },
   });
 
   const markCreditedMutation = useMutation({
-    mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: { ...entry, status: "credit_processed" } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
+    mutationFn: (entry: ReturnEntry) =>
+      fetchUpdate({ data: { ...entry, status: "credit_processed" } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+    },
   });
 
   const restoreActiveMutation = useMutation({
     mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: { ...entry, status: "completed" } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => fetchDelete({ data: { id } }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["returns"] }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+    },
   });
 
-  const activeData = useMemo(() => data.filter(r => r.status !== "credit_processed"), [data]);
-  const creditedData = useMemo(() => data.filter(r => r.status === "credit_processed"), [data]);
+  const activeData = useMemo(() => data.filter((r) => r.status !== "credit_processed"), [data]);
+  const creditedData = useMemo(() => data.filter((r) => r.status === "credit_processed"), [data]);
   const tableSource = activeTab === "credited" ? creditedData : activeData;
 
   const stores = useMemo(
@@ -585,7 +786,9 @@ function ReturnsTrackerPage() {
     const q = search.trim().toLowerCase();
     return tableSource
       .filter((r) => {
-        const hay = [r.refNumber, r.jobNumber, r.serialNumber, r.storeName, r.notes, r.unitLocation].join(" ").toLowerCase();
+        const hay = [r.refNumber, r.jobNumber, r.serialNumber, r.storeName, r.notes, r.unitLocation]
+          .join(" ")
+          .toLowerCase();
         if (q && !hay.includes(q)) return false;
         if (statusFilter !== "all" && r.status !== statusFilter) return false;
         if (typeFilter !== "all" && r.refType !== typeFilter) return false;
@@ -599,10 +802,23 @@ function ReturnsTrackerPage() {
         const bv = b[sortKey] ?? "";
         return av < bv ? sortDir : av > bv ? -sortDir : 0;
       });
-  }, [tableSource, search, statusFilter, typeFilter, storeFilter, dateFrom, dateTo, sortKey, sortDir]);
+  }, [
+    tableSource,
+    search,
+    statusFilter,
+    typeFilter,
+    storeFilter,
+    dateFrom,
+    dateTo,
+    sortKey,
+    sortDir,
+  ]);
 
   const stats = useMemo(() => {
-    const parseAmt = (v: string) => { const n = parseFloat(v.replace(/[^0-9.]/g, "")); return isNaN(n) ? 0 : n; };
+    const parseAmt = (v: string) => {
+      const n = parseFloat(v.replace(/[^0-9.]/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
     return {
       total: data.length,
       completed: data.filter((d) => d.status === "completed").length,
@@ -633,20 +849,34 @@ function ReturnsTrackerPage() {
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir((s) => (s === 1 ? -1 : 1));
-    else { setSortKey(k); setSortDir(1); }
+    else {
+      setSortKey(k);
+      setSortDir(1);
+    }
   }
 
-  function openAdd() { setEditingId(null); setForm(emptyEntry()); setModalOpen(true); }
+  function openAdd() {
+    setEditingId(null);
+    setForm(emptyEntry());
+    setModalOpen(true);
+  }
 
   function openEdit(r: ReturnEntry) {
     setEditingId(r.id);
     setForm({
-      refType: r.refType, refNumber: r.refNumber, jobNumber: r.jobNumber,
-      serialNumber: r.serialNumber, storeName: r.storeName,
-      productType: r.productType ?? "laptop", bundle: r.bundle,
-      unitLocation: r.unitLocation, date: r.date, status: r.status,
+      refType: r.refType,
+      refNumber: r.refNumber,
+      jobNumber: r.jobNumber,
+      serialNumber: r.serialNumber,
+      storeName: r.storeName,
+      productType: r.productType ?? "laptop",
+      bundle: r.bundle,
+      unitLocation: r.unitLocation,
+      date: r.date,
+      status: r.status,
       creditStatus: r.creditStatus ?? "unit_on_hand",
-      creditNoteNumber: r.creditNoteNumber ?? "", notes: r.notes,
+      creditNoteNumber: r.creditNoteNumber ?? "",
+      notes: r.notes,
       grsRfcGrnImageUrl: r.grsRfcGrnImageUrl ?? "",
       supplierCreditImageUrl: r.supplierCreditImageUrl ?? "",
       requestedCreditAmount: r.requestedCreditAmount ?? "",
@@ -681,7 +911,14 @@ function ReturnsTrackerPage() {
       "Serial Number": r.serialNumber,
       Store: r.storeName,
       Product: productLabels[r.productType] || "Unknown",
-      Bundle: r.bundle === "yes" ? "Yes" : r.bundle === "partial" ? "Partial" : r.bundle === "standalone_laptop" ? "Standalone Laptop" : "None",
+      Bundle:
+        r.bundle === "yes"
+          ? "Yes"
+          : r.bundle === "partial"
+            ? "Partial"
+            : r.bundle === "standalone_laptop"
+              ? "Standalone Laptop"
+              : "None",
       Location: r.unitLocation,
       Date: r.date,
       Status: r.status.charAt(0).toUpperCase() + r.status.slice(1),
@@ -689,11 +926,11 @@ function ReturnsTrackerPage() {
       "Credit Note No.": r.creditNoteNumber,
       Notes: r.notes,
     }));
-    
+
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [8,16,14,18,20,12,14,16,12,12,16,16,30].map(w => ({ wch: w }));
+    ws["!cols"] = [8, 16, 14, 18, 20, 12, 14, 16, 12, 12, 16, 16, 30].map((w) => ({ wch: w }));
     ws["!freeze"] = { xSplit: 0, ySplit: 1 }; // Freeze header row
-    
+
     // Define border and center alignment for all cells
     const borderStyle = { style: "thin", color: { rgb: "D1D5DB" } };
     const headerStyle = {
@@ -702,18 +939,18 @@ function ReturnsTrackerPage() {
       alignment: { horizontal: "center", vertical: "center", wrapText: true },
       border: { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle },
     };
-    
+
     // Status colors for cells
     const statusColors: Record<string, string> = {
-      "Completed": "C6EFCE",
-      "Started": "FFEB9C",
-      "Pending": "FFC7CE",
-      "Missing": "FF6B6B",
+      Completed: "C6EFCE",
+      Started: "FFEB9C",
+      Pending: "FFC7CE",
+      Missing: "FF6B6B",
     };
 
     // Apply formatting to all cells
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
-    
+
     for (let R = range.s.r; R <= range.e.r; ++R) {
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const address = XLSX.utils.encode_col(C) + (R + 1);
@@ -726,18 +963,18 @@ function ReturnsTrackerPage() {
           // Data rows with alternating colors
           const isAlternate = R % 2 === 0;
           const cell = ws[address];
-          
+
           // Get status value for conditional coloring
           const statusCol = rows[R - 1]?.Status;
           const statusBgColor = statusColors[statusCol];
-          
+
           cell.s = {
             font: { color: { rgb: "1F2937" }, size: 10 },
-            fill: statusBgColor 
+            fill: statusBgColor
               ? { fgColor: { rgb: statusBgColor } }
-              : isAlternate 
-              ? { fgColor: { rgb: "F9FAFB" } }
-              : { fgColor: { rgb: "FFFFFF" } },
+              : isAlternate
+                ? { fgColor: { rgb: "F9FAFB" } }
+                : { fgColor: { rgb: "FFFFFF" } },
             alignment: { horizontal: "left", vertical: "center", wrapText: true },
             border: {
               top: { style: "thin", color: { rgb: "E5E7EB" } },
@@ -746,7 +983,7 @@ function ReturnsTrackerPage() {
               right: { style: "thin", color: { rgb: "E5E7EB" } },
             },
           };
-          
+
           // Center align specific columns
           if ([0, 4, 6, 9, 10].includes(C)) {
             cell.s!.alignment = { horizontal: "center", vertical: "center", wrapText: true };
@@ -765,25 +1002,29 @@ function ReturnsTrackerPage() {
       ["Total Records", totalReturns, ""],
       ["", "", ""],
       ["STATUS BREAKDOWN", "", "Count"],
-      ["Completed", "", filtered.filter(d => d.status === "completed").length],
-      ["Started", "", filtered.filter(d => d.status === "started").length],
-      ["Pending", "", filtered.filter(d => d.status === "pending").length],
-      ["Missing", "", filtered.filter(d => d.status === "missing").length],
+      ["Completed", "", filtered.filter((d) => d.status === "completed").length],
+      ["Started", "", filtered.filter((d) => d.status === "started").length],
+      ["Pending", "", filtered.filter((d) => d.status === "pending").length],
+      ["Missing", "", filtered.filter((d) => d.status === "missing").length],
       ["", "", ""],
       ["PRODUCT BREAKDOWN", "", "Count"],
-      ["Laptops", "", filtered.filter(d => d.productType === "laptop").length],
-      ["Printers", "", filtered.filter(d => d.productType === "printer").length],
-      ["RMA", "", filtered.filter(d => d.productType === "rma").length],
+      ["Laptops", "", filtered.filter((d) => d.productType === "laptop").length],
+      ["Printers", "", filtered.filter((d) => d.productType === "printer").length],
+      ["RMA", "", filtered.filter((d) => d.productType === "rma").length],
       ["", "", ""],
       ["BUNDLE STATUS", "", "Count"],
-      ["Full Bundle", "", filtered.filter(d => d.bundle === "yes").length],
-      ["Partial", "", filtered.filter(d => d.bundle === "partial").length],
-      ["Standalone Laptop", "", filtered.filter(d => d.bundle === "standalone_laptop").length],
-      ["None / No Bundle", "", filtered.filter(d => d.bundle === "no" || d.bundle === "none").length],
+      ["Full Bundle", "", filtered.filter((d) => d.bundle === "yes").length],
+      ["Partial", "", filtered.filter((d) => d.bundle === "partial").length],
+      ["Standalone Laptop", "", filtered.filter((d) => d.bundle === "standalone_laptop").length],
+      [
+        "None / No Bundle",
+        "",
+        filtered.filter((d) => d.bundle === "no" || d.bundle === "none").length,
+      ],
       ["", "", ""],
       ["CREDIT STATUS", "", "Count"],
-      ["Supplier Credit", "", filtered.filter(d => d.creditStatus === "supplier_credit").length],
-      ["Unit on Hand", "", filtered.filter(d => d.creditStatus === "unit_on_hand").length],
+      ["Supplier Credit", "", filtered.filter((d) => d.creditStatus === "supplier_credit").length],
+      ["Unit on Hand", "", filtered.filter((d) => d.creditStatus === "unit_on_hand").length],
     ];
 
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
@@ -846,7 +1087,7 @@ function ReturnsTrackerPage() {
 
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
     XLSX.utils.book_append_sheet(wb, ws, "Returns");
-    
+
     XLSX.writeFile(wb, `returns-omni-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
 
@@ -858,129 +1099,206 @@ function ReturnsTrackerPage() {
     });
   }
 
-  const isMutating = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+  const isMutating =
+    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
   const formDate = form.date ? new Date(form.date + "T00:00:00") : undefined;
 
   // Show read-only view
   if (isReadOnly) {
-    if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin opacity-40" /></div>;
+    if (isLoading)
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin opacity-40" />
+        </div>
+      );
     return <ReadOnlyView data={data} />;
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#0f1117" }}>
-
-      {/* ══════════════════════════════════════════
-          COMMAND HEADER  (full-width dark)
-      ══════════════════════════════════════════ */}
-      <div style={{ background: "#0f1117" }} className="border-b border-white/[0.06]">
-        <div className="mx-auto max-w-[1400px] px-6">
-
-          {/* Top bar */}
-          <div className="h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-7 w-7 rounded-md bg-white/10 flex items-center justify-center">
-                <PackageOpen className="h-4 w-4 text-white/80" />
-              </div>
-              <span className="font-semibold text-sm text-white/90 tracking-tight">Returns Tracker</span>
-              <span className="text-white/20 text-sm hidden sm:block">·</span>
-              <span className="hidden sm:block text-xs text-white/30">Omni Technical Solutions</span>
+    <div className="min-h-screen bg-background">
+      {/* Sticky white header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+        <div className="mx-auto max-w-[1400px] px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <PackageOpen className="h-4 w-4 text-white" />
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={copyReadOnlyLink} className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5 rounded-md hover:bg-white/5">
-                {copyToast ? <><Check className="h-3.5 w-3.5 text-emerald-400" />Copied</> : <><Eye className="h-3.5 w-3.5" />Share</>}
-              </button>
-              <button onClick={exportExcel} disabled={data.length === 0} className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5 rounded-md hover:bg-white/5 disabled:opacity-30">
-                <FileSpreadsheet className="h-3.5 w-3.5" />Export
-              </button>
-              <button onClick={openAdd} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 transition-colors px-4 py-1.5 rounded-md">
-                <Plus className="h-3.5 w-3.5" />Add Return
-              </button>
+            <div>
+              <span className="font-semibold text-sm text-slate-900">Returns Tracker</span>
+              <span className="hidden sm:inline text-slate-400 text-sm mx-2">·</span>
+              <span className="hidden sm:inline text-xs text-slate-500">
+                Omni Technical Solutions
+              </span>
             </div>
           </div>
-
-          {/* ── KPI strip ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px border border-white/[0.06] rounded-xl overflow-hidden mb-6" style={{ background: "rgba(255,255,255,0.04)" }}>
-            {[
-              { label: "Total Returns",  value: stats.total,                                                             sub: "all time",          color: "text-white"         },
-              { label: "Active",         value: stats.started + stats.inProgress + stats.pending + stats.incomplete,     sub: "in progress",        color: "text-sky-400"       },
-              { label: "Completed",      value: stats.completed,                                                          sub: "processed",          color: "text-emerald-400"   },
-              { label: "Credited ✓",    value: stats.creditProcessed,                                                    sub: "supplier credited",  color: "text-violet-400"    },
-              { label: "Missing",        value: stats.missing,                                                            sub: "no unit",            color: "text-rose-400"      },
-              { label: "Incomplete",     value: stats.incomplete,                                                         sub: "needs action",       color: "text-amber-400"     },
-            ].map(({ label, value, sub, color }) => (
-              <KpiTile key={label} label={label} value={value} sub={sub} color={color} />
-            ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyReadOnlyLink}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-3 py-1.5 transition-colors"
+            >
+              {copyToast ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Copied
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5" /> Share
+                </>
+              )}
+            </button>
+            <button
+              onClick={exportExcel}
+              disabled={data.length === 0}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-3 py-1.5 transition-colors disabled:opacity-40"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Export
+            </button>
+            <button
+              onClick={openAdd}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-white hover:bg-primary/90 rounded-md px-4 py-1.5 transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Return
+            </button>
           </div>
+        </div>
+      </header>
 
-          {/* ── Credit financials (only if amounts exist) ── */}
-          {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
-            <div className="flex flex-wrap items-center gap-8 pb-5 border-t border-white/[0.06] pt-4">
+      <main className="mx-auto max-w-[1400px] px-6 py-6 space-y-5 pb-12">
+        {/* KPI stat cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard
+            label="Total Returns"
+            value={stats.total}
+            color="text-slate-900"
+            dot="bg-slate-400"
+          />
+          <StatCard
+            label="Active"
+            value={stats.started + stats.inProgress + stats.pending + stats.incomplete}
+            color="text-blue-600"
+            dot="bg-blue-500"
+          />
+          <StatCard
+            label="Completed"
+            value={stats.completed}
+            color="text-emerald-600"
+            dot="bg-emerald-500"
+          />
+          <StatCard
+            label="Credited"
+            value={stats.creditProcessed}
+            color="text-violet-600"
+            dot="bg-violet-500"
+          />
+          <StatCard label="Missing" value={stats.missing} color="text-rose-600" dot="bg-rose-500" />
+          <StatCard
+            label="Incomplete"
+            value={stats.incomplete}
+            color="text-amber-600"
+            dot="bg-amber-500"
+          />
+        </div>
+
+        {/* Financial banner */}
+        {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="flex flex-wrap items-center gap-8">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Requested</p>
-                <p className="text-xl font-black text-white tabular-nums">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
+                  Total Requested
+                </p>
+                <p className="text-lg font-bold text-slate-900">
+                  R{" "}
+                  {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+                </p>
               </div>
-              <div className="text-white/10 text-2xl font-thin hidden sm:block">|</div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Supplier Credited</p>
-                <p className="text-xl font-black text-emerald-400 tabular-nums">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
+                  Supplier Credited
+                </p>
+                <p className="text-lg font-bold text-emerald-600">
+                  R{" "}
+                  {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+                </p>
               </div>
               {stats.totalRequestedCredit > 0 && (
-                <>
-                  <div className="text-white/10 text-2xl font-thin hidden sm:block">|</div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Outstanding</p>
-                    <p className={cn("text-xl font-black tabular-nums", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-400" : "text-emerald-400")}>
-                      R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
+                    Outstanding
+                  </p>
+                  <p
+                    className={cn(
+                      "text-lg font-bold",
+                      stats.totalRequestedCredit - stats.totalSupplierCredit > 0
+                        ? "text-rose-600"
+                        : "text-emerald-600",
+                    )}
+                  >
+                    R{" "}
+                    {Math.abs(
+                      stats.totalRequestedCredit - stats.totalSupplierCredit,
+                    ).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               )}
               <div className="ml-auto flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] text-white/25 font-medium uppercase tracking-widest">Live</span>
+                <span className="text-[11px] text-slate-400 font-medium">Live</span>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* ══════════════════════════════════════════
-          CONTENT AREA  (light)
-      ══════════════════════════════════════════ */}
-      <div style={{ background: "#f4f5f7" }} className="min-h-screen">
-        <div className="mx-auto max-w-[1400px] px-6 py-5 pb-16">
-
-          {/* ── Overview panels ── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {/* Analytics overview */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-slate-400" />
+              <h2 className="text-sm font-semibold text-slate-700">Analytics</h2>
+            </div>
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
+            </span>
+          </div>
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-6">
             {/* By Type */}
-            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Document Type</p>
-              {(["RFC","GRS","GRN"] as const).map((t) => (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                Document Type
+              </p>
+              {(["RFC", "GRS", "GRN"] as const).map((t) => (
                 <div key={t} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
                     <span className="text-xs font-semibold text-slate-600">{t}</span>
                     <span className="text-xs font-bold text-slate-900">{stats.byType[t]}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-slate-800 transition-all duration-700"
-                      style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
+                    <div
+                      className="h-full rounded-full bg-slate-800 transition-all duration-700"
+                      style={{
+                        width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%",
+                      }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
             {/* By Status */}
-            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status</p>
-              {([
-                { k: "completed",   label: "Completed",   color: "bg-emerald-500" },
-                { k: "in_progress", label: "In Progress", color: "bg-blue-500"    },
-                { k: "started",     label: "Started",     color: "bg-sky-400"     },
-                { k: "pending",     label: "Pending",     color: "bg-amber-400"   },
-                { k: "incomplete",  label: "Incomplete",  color: "bg-orange-400"  },
-                { k: "missing",     label: "Missing",     color: "bg-rose-500"    },
-              ] as const).map(({ k, label, color }) => {
-                const count = activeData.filter(d => d.status === k).length;
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                Status
+              </p>
+              {(
+                [
+                  { k: "completed", label: "Completed", color: "bg-emerald-500" },
+                  { k: "in_progress", label: "In Progress", color: "bg-blue-500" },
+                  { k: "started", label: "Started", color: "bg-sky-400" },
+                  { k: "pending", label: "Pending", color: "bg-amber-400" },
+                  { k: "incomplete", label: "Incomplete", color: "bg-orange-400" },
+                  { k: "missing", label: "Missing", color: "bg-rose-500" },
+                ] as const
+              ).map(({ k, label, color }) => {
+                const count = activeData.filter((d) => d.status === k).length;
                 if (count === 0) return null;
                 return (
                   <div key={k} className="mb-2 last:mb-0">
@@ -989,20 +1307,26 @@ function ReturnsTrackerPage() {
                       <span className="text-xs font-bold text-slate-800">{count}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div className={cn("h-full rounded-full transition-all duration-700", color)}
-                        style={{ width: activeData.length ? `${(count / activeData.length) * 100}%` : "0%" }} />
+                      <div
+                        className={cn("h-full rounded-full transition-all duration-700", color)}
+                        style={{
+                          width: activeData.length ? `${(count / activeData.length) * 100}%` : "0%",
+                        }}
+                      />
                     </div>
                   </div>
                 );
               })}
             </div>
             {/* By Product */}
-            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Product Type</p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                Product Type
+              </p>
               {[
-                { label: "Laptop",  val: stats.byProduct.laptop,  color: "bg-sky-500"    },
+                { label: "Laptop", val: stats.byProduct.laptop, color: "bg-sky-500" },
                 { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
-                { label: "RMA",     val: stats.byProduct.rma,     color: "bg-amber-400"  },
+                { label: "RMA", val: stats.byProduct.rma, color: "bg-amber-400" },
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
@@ -1010,20 +1334,24 @@ function ReturnsTrackerPage() {
                     <span className="text-xs font-bold text-slate-900">{val}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
-                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-700", color)}
+                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
             {/* Credit Status */}
-            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                Credit Status
+              </p>
               {[
-                { label: "Supplier Credit",  val: stats.supplierCredit,  color: "bg-emerald-500" },
-                { label: "Unit on Hand",     val: stats.unitOnHand,      color: "bg-slate-400"   },
-                { label: "No Physical Unit", val: stats.noPhysicalUnit,  color: "bg-rose-400"    },
-                { label: "Credited ✓",       val: stats.creditProcessed, color: "bg-violet-500"  },
+                { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
+                { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
+                { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
+                { label: "Credited ✓", val: stats.creditProcessed, color: "bg-violet-500" },
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-2 last:mb-0">
                   <div className="flex justify-between mb-0.5">
@@ -1031,186 +1359,329 @@ function ReturnsTrackerPage() {
                     <span className="text-xs font-bold text-slate-800">{val}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
-                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                    <div
+                      className={cn("h-full rounded-full transition-all duration-700", color)}
+                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* ── Tabs + Filters row ── */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {/* Tabs */}
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-              <button onClick={() => setActiveTab("active")}
-                className={cn("px-4 py-2 text-xs font-semibold transition-colors border-r border-slate-200",
-                  activeTab === "active" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50")}>
-                Active
-                <span className={cn("ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold",
-                  activeTab === "active" ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500")}>
-                  {activeData.length}
-                </span>
-              </button>
-              <button onClick={() => setActiveTab("credited")}
-                className={cn("px-4 py-2 text-xs font-semibold transition-colors",
-                  activeTab === "credited" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50")}>
-                Credited ✓
-                <span className={cn("ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold",
-                  activeTab === "credited" ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500")}>
-                  {creditedData.length}
-                </span>
-              </button>
-            </div>
-            {/* Search */}
-            <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-              <Search className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search ref, job no., serial, store…"
-                className="flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-700" />
-              {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700"><X className="h-3 w-3" /></button>}
-            </div>
-            {activeTab === "active" && (
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="started">Started</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="incomplete">Incomplete</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="missing">Missing</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-[110px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All types" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="RFC">RFC</SelectItem>
-                <SelectItem value="GRS">GRS</SelectItem>
-                <SelectItem value="GRN">GRN</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={storeFilter} onValueChange={setStoreFilter}>
-              <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All stores" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All stores</SelectItem>
-                {stores.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-2 shadow-sm">
-              <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                className="text-xs bg-transparent outline-none text-slate-600" />
-              <span className="text-slate-300">–</span>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                className="text-xs bg-transparent outline-none text-slate-600" />
-              {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }}><X className="h-3 w-3 text-slate-400 hover:text-slate-700" /></button>}
-            </div>
-          </div>
-
-          {/* ── Table ── */}
-          <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[1100px]">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <Th onClick={() => toggleSort("refType")}>Type</Th>
-                    <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
-                    <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
-                    <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
-                    <Th onClick={() => toggleSort("storeName")}>Store</Th>
-                    <Th>Product</Th>
-                    <Th>Bundle</Th>
-                    <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
-                    <Th onClick={() => toggleSort("status")}>Status</Th>
-                    <Th>Credit</Th>
-                    <Th onClick={() => toggleSort("date")}>Date</Th>
-                    <Th>Notes</Th>
-                    <th className="px-3 py-3 w-[130px]" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr><td colSpan={13}><div className="py-16 text-center"><Loader2 className="h-7 w-7 mx-auto mb-3 animate-spin text-slate-300" /><p className="text-sm text-slate-400">Loading returns…</p></div></td></tr>
-                  ) : isError ? (
-                    <tr><td colSpan={13}><div className="py-14 text-center"><AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" /><p className="text-sm font-medium text-slate-600">Failed to load</p></div></td></tr>
-                  ) : filtered.length === 0 ? (
-                    <tr><td colSpan={13}><div className="py-16 text-center">
-                      <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-200" />
-                      <p className="text-sm font-semibold text-slate-500 mb-1">{tableSource.length === 0 ? (activeTab === "credited" ? "No credited returns yet" : "No returns yet") : "No results"}</p>
-                      <span className="text-xs text-slate-400">{tableSource.length === 0 ? (activeTab === "credited" ? "Move returns here once credited." : 'Click "Add Return" to get started.') : "Adjust your filters."}</span>
-                    </div></td></tr>
-                  ) : (
-                    filtered.map((r, idx) => (
-                      <tr key={r.id}
-                        className={cn("border-b border-slate-100 last:border-0 hover:bg-blue-50/30 transition-colors cursor-pointer group",
-                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/30")}
-                        onClick={() => setViewEntry(r)}>
-                        <td className="px-3.5 py-3">
-                          <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-900 text-white">{r.refType}</span>
-                        </td>
-                        <td className="px-3.5 py-3">
-                          <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{r.refNumber || "—"}</span>
-                        </td>
-                        <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.jobNumber || "—"}</td>
-                        <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.serialNumber || "—"}</td>
-                        <td className="px-3.5 py-3 text-xs font-semibold text-slate-800">{r.storeName || "—"}</td>
-                        <td className="px-3.5 py-3"><ProductTypeCell value={r.productType} /></td>
-                        <td className="px-3.5 py-3"><BundleCell value={r.bundle} /></td>
-                        <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>{r.unitLocation || "—"}</td>
-                        <td className="px-3.5 py-3"><StatusBadge status={r.status} /></td>
-                        <td className="px-3.5 py-3 text-xs">
-                          {r.creditStatus === "supplier_credit" ? (
-                            <div>
-                              <span className="font-semibold text-emerald-700 block text-[11px]">Supplier credit</span>
-                              <span className="font-mono text-[10px] text-slate-400">{r.creditNoteNumber || "—"}</span>
-                            </div>
-                          ) : r.creditStatus === "no_physical_unit" ? (
-                            <span className="text-[11px] font-semibold text-rose-600">No unit</span>
-                          ) : (
-                            <span className="text-[11px] text-slate-500">On hand</span>
-                          )}
-                        </td>
-                        <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
-                          {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
-                        </td>
-                        <td className="px-3.5 py-3 text-xs text-slate-400 max-w-[180px] truncate" title={r.notes}>{r.notes || "—"}</td>
-                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            {activeTab === "active" ? (
-                              <button title="Mark as Credited" onClick={() => markCreditedMutation.mutate(r)} disabled={markCreditedMutation.isPending}
-                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors disabled:opacity-50">
-                                {markCreditedMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}Credit
-                              </button>
-                            ) : (
-                              <button title="Restore to Active" onClick={() => restoreActiveMutation.mutate(r)} disabled={restoreActiveMutation.isPending}
-                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
-                                ↩ Restore
-                              </button>
-                            )}
-                            <IconBtn label="Edit" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
-                            <IconBtn label="Delete" danger onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></IconBtn>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {filtered.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
-                <p className="text-[11px] text-slate-400">Showing <strong className="text-slate-600">{filtered.length}</strong> of <strong className="text-slate-600">{tableSource.length}</strong> entries</p>
-                <p className="text-[11px] text-slate-400 hidden sm:block">Hover a row to reveal actions</p>
-              </div>
-            )}
-          </div>
-
         </div>
-      </div>
+
+        {/* ── Tabs + Filters row ── */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab("active")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                activeTab === "active"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              Active
+              <span
+                className={cn(
+                  "text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
+                  activeTab === "active"
+                    ? "bg-primary/10 text-primary"
+                    : "bg-slate-200 text-slate-500",
+                )}
+              >
+                {activeData.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("credited")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                activeTab === "credited"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900",
+              )}
+            >
+              Credited
+              <span
+                className={cn(
+                  "text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
+                  activeTab === "credited"
+                    ? "bg-violet-100 text-violet-600"
+                    : "bg-slate-200 text-slate-500",
+                )}
+              >
+                {creditedData.length}
+              </span>
+            </button>
+          </div>
+          {/* Search */}
+          <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+            <Search className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search ref, job no., serial, store…"
+              className="flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-700"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700">
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          {activeTab === "active" && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="started">Started</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="incomplete">Incomplete</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="missing">Missing</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[110px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="RFC">RFC</SelectItem>
+              <SelectItem value="GRS">GRS</SelectItem>
+              <SelectItem value="GRN">GRN</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={storeFilter} onValueChange={setStoreFilter}>
+            <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+              <SelectValue placeholder="All stores" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All stores</SelectItem>
+              {stores.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-2 shadow-sm">
+            <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="text-xs bg-transparent outline-none text-slate-600"
+            />
+            <span className="text-slate-300">–</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="text-xs bg-transparent outline-none text-slate-600"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+              >
+                <X className="h-3 w-3 text-slate-400 hover:text-slate-700" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Table ── */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[1100px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <Th onClick={() => toggleSort("refType")}>Type</Th>
+                  <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
+                  <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
+                  <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
+                  <Th onClick={() => toggleSort("storeName")}>Store</Th>
+                  <Th>Product</Th>
+                  <Th>Bundle</Th>
+                  <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
+                  <Th onClick={() => toggleSort("status")}>Status</Th>
+                  <Th>Credit</Th>
+                  <Th onClick={() => toggleSort("date")}>Date</Th>
+                  <Th>Notes</Th>
+                  <th className="px-3 py-3 w-[130px]" />
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={13}>
+                      <div className="py-16 text-center">
+                        <Loader2 className="h-7 w-7 mx-auto mb-3 animate-spin text-slate-300" />
+                        <p className="text-sm text-slate-400">Loading returns…</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : isError ? (
+                  <tr>
+                    <td colSpan={13}>
+                      <div className="py-14 text-center">
+                        <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" />
+                        <p className="text-sm font-medium text-slate-600">Failed to load</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={13}>
+                      <div className="py-16 text-center">
+                        <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                        <p className="text-sm font-semibold text-slate-500 mb-1">
+                          {tableSource.length === 0
+                            ? activeTab === "credited"
+                              ? "No credited returns yet"
+                              : "No returns yet"
+                            : "No results"}
+                        </p>
+                        <span className="text-xs text-slate-400">
+                          {tableSource.length === 0
+                            ? activeTab === "credited"
+                              ? "Move returns here once credited."
+                              : 'Click "Add Return" to get started.'
+                            : "Adjust your filters."}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="group border-b border-slate-100 last:border-0 hover:bg-slate-50/80 transition-colors cursor-pointer"
+                      onClick={() => setViewEntry(r)}
+                    >
+                      <td className="px-3.5 py-3">
+                        <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-900 text-white">
+                          {r.refType}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-3">
+                        <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                          {r.refNumber || "—"}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">
+                        {r.jobNumber || "—"}
+                      </td>
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">
+                        {r.serialNumber || "—"}
+                      </td>
+                      <td className="px-3.5 py-3 text-xs font-semibold text-slate-800">
+                        {r.storeName || "—"}
+                      </td>
+                      <td className="px-3.5 py-3">
+                        <ProductTypeCell value={r.productType} />
+                      </td>
+                      <td className="px-3.5 py-3">
+                        <BundleCell value={r.bundle} />
+                      </td>
+                      <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>
+                        {r.unitLocation || "—"}
+                      </td>
+                      <td className="px-3.5 py-3">
+                        <StatusBadge status={r.status} />
+                      </td>
+                      <td className="px-3.5 py-3 text-xs">
+                        {r.creditStatus === "supplier_credit" ? (
+                          <div>
+                            <span className="font-semibold text-emerald-700 block text-[11px]">
+                              Supplier credit
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400">
+                              {r.creditNoteNumber || "—"}
+                            </span>
+                          </div>
+                        ) : r.creditStatus === "no_physical_unit" ? (
+                          <span className="text-[11px] font-semibold text-rose-600">No unit</span>
+                        ) : (
+                          <span className="text-[11px] text-slate-500">On hand</span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                      </td>
+                      <td
+                        className="px-3.5 py-3 text-xs text-slate-400 max-w-[180px] truncate"
+                        title={r.notes}
+                      >
+                        {r.notes || "—"}
+                      </td>
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          {activeTab === "active" ? (
+                            <button
+                              title="Mark as Credited"
+                              onClick={() => markCreditedMutation.mutate(r)}
+                              disabled={markCreditedMutation.isPending}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 transition-colors disabled:opacity-50"
+                            >
+                              {markCreditedMutation.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <CreditCard className="h-3 w-3" />
+                              )}{" "}
+                              Credit
+                            </button>
+                          ) : (
+                            <button
+                              title="Restore to Active"
+                              onClick={() => restoreActiveMutation.mutate(r)}
+                              disabled={restoreActiveMutation.isPending}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                            >
+                              ↩ Restore
+                            </button>
+                          )}
+                          <IconBtn label="Edit" onClick={() => openEdit(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </IconBtn>
+                          <IconBtn label="Delete" danger onClick={() => remove(r.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </IconBtn>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length > 0 && (
+            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
+              <p className="text-[11px] text-slate-400">
+                Showing <strong className="text-slate-600">{filtered.length}</strong> of{" "}
+                <strong className="text-slate-600">{tableSource.length}</strong> entries
+              </p>
+              <p className="text-[11px] text-slate-400 hidden sm:block">
+                Hover a row to reveal actions
+              </p>
+            </div>
+          )}
+        </div>
+
+        <p className="text-[11px] text-slate-400 text-center pb-2">
+          Omni Technical Solutions · Returns Tracker · {new Date().getFullYear()}
+        </p>
+      </main>
       {/* Add / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[92vh] overflow-y-auto">
@@ -1219,8 +1690,13 @@ function ReturnsTrackerPage() {
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
             <Field label="Reference Type">
-              <Select value={form.refType} onValueChange={(v) => setForm((f) => ({ ...f, refType: v as RefType }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.refType}
+                onValueChange={(v) => setForm((f) => ({ ...f, refType: v as RefType }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="RFC">RFC</SelectItem>
                   <SelectItem value="GRS">GRS</SelectItem>
@@ -1229,20 +1705,47 @@ function ReturnsTrackerPage() {
               </Select>
             </Field>
             <Field label="Reference Number *">
-              <Input value={form.refNumber} onChange={(e) => setForm((f) => ({ ...f, refNumber: e.target.value }))} placeholder="e.g. RFC-20241" />
+              <Input
+                value={form.refNumber}
+                onChange={(e) => setForm((f) => ({ ...f, refNumber: e.target.value }))}
+                placeholder="e.g. RFC-20241"
+              />
             </Field>
             <Field label="Job Number">
-              <Input value={form.jobNumber} onChange={(e) => setForm((f) => ({ ...f, jobNumber: e.target.value }))} placeholder="e.g. JOB-00312" />
+              <Input
+                value={form.jobNumber}
+                onChange={(e) => setForm((f) => ({ ...f, jobNumber: e.target.value }))}
+                placeholder="e.g. JOB-00312"
+              />
             </Field>
             <Field label="Serial Number">
-              <Input value={form.serialNumber} onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))} placeholder="e.g. SN7812345600" />
+              <Input
+                value={form.serialNumber}
+                onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
+                placeholder="e.g. SN7812345600"
+              />
             </Field>
             <Field label="Retailer" className="sm:col-span-2">
               <div className="flex flex-col gap-2">
-                <Select value={RETAILERS.includes(form.storeName.split(" - ")[0]) ? form.storeName.split(" - ")[0] : "__custom"} onValueChange={(v) => setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))}>
-                  <SelectTrigger><SelectValue placeholder="Select retailer" /></SelectTrigger>
+                <Select
+                  value={
+                    RETAILERS.includes(form.storeName.split(" - ")[0])
+                      ? form.storeName.split(" - ")[0]
+                      : "__custom"
+                  }
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select retailer" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {RETAILERS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {RETAILERS.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
                     <SelectItem value="__custom">Other (type below)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1250,8 +1753,13 @@ function ReturnsTrackerPage() {
                   <Input
                     value={form.storeName.includes(" - ") ? form.storeName.split(" - ")[1] : ""}
                     onChange={(e) => {
-                      const retailer = RETAILERS.find(r => form.storeName.startsWith(r)) || form.storeName.split(" - ")[0];
-                      setForm((f) => ({ ...f, storeName: e.target.value ? `${retailer} - ${e.target.value}` : retailer }));
+                      const retailer =
+                        RETAILERS.find((r) => form.storeName.startsWith(r)) ||
+                        form.storeName.split(" - ")[0];
+                      setForm((f) => ({
+                        ...f,
+                        storeName: e.target.value ? `${retailer} - ${e.target.value}` : retailer,
+                      }));
                     }}
                     placeholder="Branch / Store location (e.g. Sandton, Westgate)"
                   />
@@ -1266,8 +1774,13 @@ function ReturnsTrackerPage() {
               </div>
             </Field>
             <Field label="Product Type">
-              <Select value={form.productType} onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.productType}
+                onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="laptop">Laptop</SelectItem>
                   <SelectItem value="printer">Printer</SelectItem>
@@ -1276,8 +1789,13 @@ function ReturnsTrackerPage() {
               </Select>
             </Field>
             <Field label="Bundle Received?">
-              <Select value={form.bundle} onValueChange={(v) => setForm((f) => ({ ...f, bundle: v as Bundle }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.bundle}
+                onValueChange={(v) => setForm((f) => ({ ...f, bundle: v as Bundle }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="yes">Yes — full bundle</SelectItem>
                   <SelectItem value="partial">Partial</SelectItem>
@@ -1288,24 +1806,47 @@ function ReturnsTrackerPage() {
               </Select>
             </Field>
             <Field label="Unit Location">
-              <Input value={form.unitLocation} onChange={(e) => setForm((f) => ({ ...f, unitLocation: e.target.value }))} placeholder="e.g. Shelf B3, Warehouse" />
+              <Input
+                value={form.unitLocation}
+                onChange={(e) => setForm((f) => ({ ...f, unitLocation: e.target.value }))}
+                placeholder="e.g. Shelf B3, Warehouse"
+              />
             </Field>
             <Field label="Date">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !form.date && "text-muted-foreground")}>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !form.date && "text-muted-foreground",
+                    )}
+                  >
                     <CalendarIcon className="h-4 w-4" />
                     {formDate ? format(formDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={formDate} onSelect={(d) => setForm((f) => ({ ...f, date: d ? format(d, "yyyy-MM-dd") : "" }))} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  <Calendar
+                    mode="single"
+                    selected={formDate}
+                    onSelect={(d) =>
+                      setForm((f) => ({ ...f, date: d ? format(d, "yyyy-MM-dd") : "" }))
+                    }
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
                 </PopoverContent>
               </Popover>
             </Field>
             <Field label="Status">
-              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as Status }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.status}
+                onValueChange={(v) => setForm((f) => ({ ...f, status: v as Status }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="started">Started</SelectItem>
@@ -1318,18 +1859,35 @@ function ReturnsTrackerPage() {
               </Select>
             </Field>
             <Field label="Credit Status" className="sm:col-span-2">
-              <Select value={form.creditStatus} onValueChange={(v) => setForm((f) => ({ ...f, creditStatus: v as CreditStatus, creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.creditStatus}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    creditStatus: v as CreditStatus,
+                    creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="unit_on_hand">Unit on hand (physical unit with us)</SelectItem>
                   <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
-                  <SelectItem value="no_physical_unit">No physical unit (lost / not returned)</SelectItem>
+                  <SelectItem value="no_physical_unit">
+                    No physical unit (lost / not returned)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             {form.creditStatus === "supplier_credit" && (
               <Field label="Credit Note Number *" className="sm:col-span-2">
-                <Input value={form.creditNoteNumber} onChange={(e) => setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))} placeholder="e.g. CN-2024-00872" />
+                <Input
+                  value={form.creditNoteNumber}
+                  onChange={(e) => setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))}
+                  placeholder="e.g. CN-2024-00872"
+                />
               </Field>
             )}
             <Field label="Credit Amount Requested (R)" className="sm:col-span-1">
@@ -1350,60 +1908,100 @@ function ReturnsTrackerPage() {
             </Field>
             <Field label="GRS/RFC/GRN Document" className="sm:col-span-2">
               <div className="flex flex-col gap-2">
-                <input type="file" accept="image/*,.pdf" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (evt) => {
-                      setForm((f) => ({ ...f, grsRfcGrnImageUrl: evt.target?.result as string }));
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
-                {form.grsRfcGrnImageUrl && (
-                  form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
-                    <a href={form.grsRfcGrnImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        setForm((f) => ({ ...f, grsRfcGrnImageUrl: evt.target?.result as string }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
+                />
+                {form.grsRfcGrnImageUrl &&
+                  (form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
+                    <a
+                      href={form.grsRfcGrnImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                    >
                       <FileSpreadsheet className="h-4 w-4" /> View PDF document
                     </a>
                   ) : (
-                    <img src={form.grsRfcGrnImageUrl} alt="GRS/RFC/GRN" className="h-24 w-auto rounded border" />
-                  )
-                )}
+                    <img
+                      src={form.grsRfcGrnImageUrl}
+                      alt="GRS/RFC/GRN"
+                      className="h-24 w-auto rounded border"
+                    />
+                  ))}
               </div>
             </Field>
             {form.creditStatus === "supplier_credit" && (
               <Field label="Supplier Credit Note Image" className="sm:col-span-2">
                 <div className="flex flex-col gap-2">
-                  <input type="file" accept="image/*,.pdf" onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (evt) => {
-                        setForm((f) => ({ ...f, supplierCreditImageUrl: evt.target?.result as string }));
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }} className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100" />
-                  {form.supplierCreditImageUrl && (
-                    form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
-                      <a href={form.supplierCreditImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          setForm((f) => ({
+                            ...f,
+                            supplierCreditImageUrl: evt.target?.result as string,
+                          }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
+                  />
+                  {form.supplierCreditImageUrl &&
+                    (form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
+                      <a
+                        href={form.supplierCreditImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                      >
                         <FileSpreadsheet className="h-4 w-4" /> View PDF document
                       </a>
                     ) : (
-                      <img src={form.supplierCreditImageUrl} alt="Credit Note" className="h-24 w-auto rounded border" />
-                    )
-                  )}
+                      <img
+                        src={form.supplierCreditImageUrl}
+                        alt="Credit Note"
+                        className="h-24 w-auto rounded border"
+                      />
+                    ))}
                 </div>
               </Field>
             )}
             <Field label="Notes" className="sm:col-span-2">
-              <Textarea value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Query details, credit status, any relevant info…" rows={3} />
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Query details, credit status, any relevant info…"
+                rows={3}
+              />
             </Field>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isMutating}>Cancel</Button>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isMutating}>
+              Cancel
+            </Button>
             <Button onClick={save} disabled={!form.refNumber.trim() || isMutating}>
-              {isMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {isMutating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               {isMutating ? "Saving…" : "Save Return"}
             </Button>
           </DialogFooter>
@@ -1412,20 +2010,36 @@ function ReturnsTrackerPage() {
 
       {/* ── Detail View Modal (click a row) ── */}
       {viewEntry && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewEntry(null)}>
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setViewEntry(null)}
+        >
+          <div
+            className="bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">{viewEntry.refType}</span>
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">
+                  {viewEntry.refType}
+                </span>
                 <div>
                   <p className="text-white font-bold text-lg">{viewEntry.refNumber || "—"}</p>
-                  <p className="text-white/60 text-xs">{viewEntry.storeName || "No store"} · {viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy") : "—"}</p>
+                  <p className="text-white/60 text-xs">
+                    {viewEntry.storeName || "No store"} ·{" "}
+                    {viewEntry.date
+                      ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMM yyyy")
+                      : "—"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={viewEntry.status} />
-                <button onClick={() => setViewEntry(null)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white">
+                <button
+                  onClick={() => setViewEntry(null)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -1435,28 +2049,61 @@ function ReturnsTrackerPage() {
               {/* Row 1 */}
               <DetailRow label="Job Number" value={viewEntry.jobNumber} mono />
               <DetailRow label="Serial Number" value={viewEntry.serialNumber} mono />
-              <DetailRow label="Product" value={<ProductTypeCell value={viewEntry.productType} />} />
+              <DetailRow
+                label="Product"
+                value={<ProductTypeCell value={viewEntry.productType} />}
+              />
               <DetailRow label="Bundle" value={<BundleCell value={viewEntry.bundle} />} />
               <DetailRow label="Unit Location" value={viewEntry.unitLocation} />
-              <DetailRow label="Date" value={viewEntry.date ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy") : "—"} />
+              <DetailRow
+                label="Date"
+                value={
+                  viewEntry.date
+                    ? format(new Date(viewEntry.date + "T00:00:00"), "dd MMMM yyyy")
+                    : "—"
+                }
+              />
 
               {/* Credit section */}
               <div className="col-span-2 border-t pt-3 mt-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Credit Information</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  Credit Information
+                </p>
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                  <DetailRow label="Credit Status" value={
-                    viewEntry.creditStatus === "supplier_credit"
-                      ? <span className="text-emerald-700 font-semibold">Supplier Credit</span>
-                      : viewEntry.creditStatus === "no_physical_unit"
-                      ? <span className="text-rose-700 font-semibold">No Physical Unit</span>
-                      : <span className="text-slate-700 font-semibold">Unit on Hand</span>
-                  } />
-                  {viewEntry.creditNoteNumber && <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />}
+                  <DetailRow
+                    label="Credit Status"
+                    value={
+                      viewEntry.creditStatus === "supplier_credit" ? (
+                        <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                      ) : viewEntry.creditStatus === "no_physical_unit" ? (
+                        <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                      ) : (
+                        <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                      )
+                    }
+                  />
+                  {viewEntry.creditNoteNumber && (
+                    <DetailRow label="Credit Note No." value={viewEntry.creditNoteNumber} mono />
+                  )}
                   {viewEntry.requestedCreditAmount && (
-                    <DetailRow label="Credit Requested" value={<span className="font-bold text-blue-700">R {viewEntry.requestedCreditAmount}</span>} />
+                    <DetailRow
+                      label="Credit Requested"
+                      value={
+                        <span className="font-bold text-blue-700">
+                          R {viewEntry.requestedCreditAmount}
+                        </span>
+                      }
+                    />
                   )}
                   {viewEntry.supplierCreditAmount && (
-                    <DetailRow label="Supplier Credited" value={<span className="font-bold text-emerald-700">R {viewEntry.supplierCreditAmount}</span>} />
+                    <DetailRow
+                      label="Supplier Credited"
+                      value={
+                        <span className="font-bold text-emerald-700">
+                          R {viewEntry.supplierCreditAmount}
+                        </span>
+                      }
+                    />
                   )}
                 </div>
               </div>
@@ -1464,21 +2111,35 @@ function ReturnsTrackerPage() {
               {/* Notes */}
               {viewEntry.notes && (
                 <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Notes</p>
-                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{viewEntry.notes}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Notes
+                  </p>
+                  <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">
+                    {viewEntry.notes}
+                  </p>
                 </div>
               )}
 
               {/* Documents */}
               {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
                 <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Attached Documents</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    Attached Documents
+                  </p>
                   <div className="flex flex-wrap gap-3">
                     {viewEntry.grsRfcGrnImageUrl && (
-                      <DocPreview url={viewEntry.grsRfcGrnImageUrl} label="GRS/RFC/GRN Document" color="blue" />
+                      <DocPreview
+                        url={viewEntry.grsRfcGrnImageUrl}
+                        label="GRS/RFC/GRN Document"
+                        color="blue"
+                      />
                     )}
                     {viewEntry.supplierCreditImageUrl && (
-                      <DocPreview url={viewEntry.supplierCreditImageUrl} label="Supplier Credit Note" color="emerald" />
+                      <DocPreview
+                        url={viewEntry.supplierCreditImageUrl}
+                        label="Supplier Credit Note"
+                        color="emerald"
+                      />
                     )}
                   </div>
                 </div>
@@ -1487,12 +2148,26 @@ function ReturnsTrackerPage() {
 
             {/* Footer actions */}
             <div className="flex items-center justify-between px-5 pb-5 pt-2 border-t gap-2 flex-wrap">
-              <p className="text-[11px] text-muted-foreground">Created {viewEntry.createdAt ? format(new Date(viewEntry.createdAt), "dd MMM yyyy HH:mm") : "—"}</p>
+              <p className="text-[11px] text-muted-foreground">
+                Created{" "}
+                {viewEntry.createdAt
+                  ? format(new Date(viewEntry.createdAt), "dd MMM yyyy HH:mm")
+                  : "—"}
+              </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => { setViewEntry(null); openEdit(viewEntry); }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setViewEntry(null);
+                    openEdit(viewEntry);
+                  }}
+                >
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>Close</Button>
+                <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>
+                  Close
+                </Button>
               </div>
             </div>
           </div>
@@ -1504,73 +2179,173 @@ function ReturnsTrackerPage() {
 
 // ── Shared components ──
 
-function AnimatedStatCard({ label, value, accent, numCls }: { label: string; value: number; accent: string; numCls: string }) {
+function AnimatedStatCard({
+  label,
+  value,
+  accent,
+  numCls,
+}: {
+  label: string;
+  value: number;
+  accent: string;
+  numCls: string;
+}) {
   const animated = useCountUp(value);
   return (
-    <div className={cn("bg-white rounded-xl border-l-4 border border-slate-200 p-4 shadow-sm", accent.replace("border-", "border-l-"))}>
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+    <div
+      className={cn(
+        "bg-white rounded-xl border-l-4 border border-slate-200 p-4 shadow-sm",
+        accent.replace("border-", "border-l-"),
+      )}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 mb-2">
+        {label}
+      </p>
       <p className={cn("text-3xl font-black tabular-nums", numCls)}>{animated}</p>
     </div>
   );
 }
 
-function KpiTile({ label, value, sub, color }: { label: string; value: number; sub: string; color: string }) {
+function StatCard({
+  label,
+  value,
+  color,
+  dot,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  dot: string;
+}) {
   const animated = useCountUp(value);
   return (
-    <div className="px-6 py-5 flex flex-col gap-1" style={{ background: "rgba(255,255,255,0.03)" }}>
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35">{label}</p>
-      <p className={cn("text-4xl font-black tabular-nums leading-none", color)}>{animated}</p>
-      <p className="text-[10px] text-white/25">{sub}</p>
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", dot)} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          {label}
+        </span>
+      </div>
+      <span className={cn("text-2xl font-bold tracking-tight", color)}>{animated}</span>
     </div>
   );
 }
 
 function Th({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <th onClick={onClick} className={cn("px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap select-none", onClick && "cursor-pointer hover:text-slate-700")}>
-      <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}</span>
+    <th
+      className={cn(
+        "px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 whitespace-nowrap text-left",
+        onClick &&
+          "cursor-pointer hover:text-slate-800 hover:bg-slate-100 transition-colors select-none",
+      )}
+      onClick={onClick}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        {onClick && <ArrowUpDown className="h-3 w-3 opacity-40" />}
+      </span>
     </th>
   );
 }
 
-function IconBtn({ children, onClick, label, danger }: { children: React.ReactNode; onClick: () => void; label: string; danger?: boolean }) {
+function IconBtn({
+  children,
+  onClick,
+  label,
+  danger,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  label: string;
+  danger?: boolean;
+}) {
   return (
-    <button title={label} aria-label={label} onClick={onClick} className={cn("h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors", danger && "text-rose-600 hover:bg-rose-50")}>
+    <button
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "p-1.5 rounded-md transition-colors",
+        danger
+          ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+          : "text-slate-400 hover:text-slate-700 hover:bg-slate-100",
+      )}
+    >
       {children}
     </button>
   );
 }
 
-function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className={className}>
-      <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{label}</label>
+      <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        {label}
+      </label>
       {children}
     </div>
   );
 }
 
-function DetailRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
+function DetailRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+}) {
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+        {label}
+      </p>
       <p className={cn("text-sm text-foreground", mono && "font-mono")}>{value || "—"}</p>
     </div>
   );
 }
 
-function DocPreview({ url, label, color }: { url: string; label: string; color: "blue" | "emerald" }) {
+function DocPreview({
+  url,
+  label,
+  color,
+}: {
+  url: string;
+  label: string;
+  color: "blue" | "emerald";
+}) {
   const isPdf = url.startsWith("data:application/pdf");
-  const cls = color === "blue"
-    ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-    : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100";
+  const cls =
+    color === "blue"
+      ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+      : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100";
 
   if (isPdf) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" download={`${label}.pdf`}
-        className={cn("flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors", cls)}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        download={`${label}.pdf`}
+        className={cn(
+          "flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors",
+          cls,
+        )}
+      >
         <FileText className="h-5 w-5" /> {label}
-        <span className="text-[11px] font-normal opacity-70 ml-1">PDF · click to view / download</span>
+        <span className="text-[11px] font-normal opacity-70 ml-1">
+          PDF · click to view / download
+        </span>
       </a>
     );
   }
@@ -1578,10 +2353,20 @@ function DocPreview({ url, label, color }: { url: string; label: string; color: 
     <div className="flex flex-col gap-2">
       <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
       <a href={url} target="_blank" rel="noreferrer" download={`${label}.jpg`}>
-        <img src={url} alt={label} className="h-36 w-auto rounded-lg border shadow-sm hover:shadow-md transition-shadow object-cover" />
+        <img
+          src={url}
+          alt={label}
+          className="h-36 w-auto rounded-lg border shadow-sm hover:shadow-md transition-shadow object-cover"
+        />
       </a>
-      <a href={url} download={`${label}.jpg`}
-        className={cn("inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2 py-1 border transition-colors self-start", cls)}>
+      <a
+        href={url}
+        download={`${label}.jpg`}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2 py-1 border transition-colors self-start",
+          cls,
+        )}
+      >
         <Download className="h-3.5 w-3.5" /> Download
       </a>
     </div>
