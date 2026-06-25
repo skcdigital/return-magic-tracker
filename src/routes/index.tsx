@@ -868,116 +868,110 @@ function ReturnsTrackerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7]">
-      {/* ── Topnav ── */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="mx-auto max-w-[1320px] px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-slate-900 text-white flex items-center justify-center">
-              <PackageOpen className="h-4 w-4" />
+    <div className="min-h-screen" style={{ background: "#0f1117" }}>
+
+      {/* ══════════════════════════════════════════
+          COMMAND HEADER  (full-width dark)
+      ══════════════════════════════════════════ */}
+      <div style={{ background: "#0f1117" }} className="border-b border-white/[0.06]">
+        <div className="mx-auto max-w-[1400px] px-6">
+
+          {/* Top bar */}
+          <div className="h-14 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-7 rounded-md bg-white/10 flex items-center justify-center">
+                <PackageOpen className="h-4 w-4 text-white/80" />
+              </div>
+              <span className="font-semibold text-sm text-white/90 tracking-tight">Returns Tracker</span>
+              <span className="text-white/20 text-sm hidden sm:block">·</span>
+              <span className="hidden sm:block text-xs text-white/30">Omni Technical Solutions</span>
             </div>
-            <span className="font-semibold text-sm text-slate-900 tracking-tight">Returns Tracker</span>
-            <span className="hidden sm:block text-slate-300 text-sm">|</span>
-            <span className="hidden sm:block text-xs text-slate-400">Omni Technical Solutions</span>
+            <div className="flex items-center gap-2">
+              <button onClick={copyReadOnlyLink} className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5 rounded-md hover:bg-white/5">
+                {copyToast ? <><Check className="h-3.5 w-3.5 text-emerald-400" />Copied</> : <><Eye className="h-3.5 w-3.5" />Share</>}
+              </button>
+              <button onClick={exportExcel} disabled={data.length === 0} className="inline-flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors px-3 py-1.5 rounded-md hover:bg-white/5 disabled:opacity-30">
+                <FileSpreadsheet className="h-3.5 w-3.5" />Export
+              </button>
+              <button onClick={openAdd} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white text-slate-900 hover:bg-slate-100 transition-colors px-4 py-1.5 rounded-md">
+                <Plus className="h-3.5 w-3.5" />Add Return
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 text-xs h-8 px-3" onClick={copyReadOnlyLink}>
-              {copyToast ? <><Check className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />Copied!</> : <><Eye className="h-3.5 w-3.5 mr-1.5" />Share</>}
-            </Button>
-            <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 text-xs h-8 px-3" onClick={exportExcel} disabled={data.length === 0}>
-              <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />Export
-            </Button>
-            <Button size="sm" className="h-8 px-4 text-xs bg-slate-900 hover:bg-slate-800 text-white" onClick={openAdd}>
-              <Plus className="h-3.5 w-3.5 mr-1.5" />Add Return
-            </Button>
+
+          {/* ── KPI strip ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px border border-white/[0.06] rounded-xl overflow-hidden mb-6" style={{ background: "rgba(255,255,255,0.04)" }}>
+            {[
+              { label: "Total Returns",  value: stats.total,                                                             sub: "all time",          color: "text-white"         },
+              { label: "Active",         value: stats.started + stats.inProgress + stats.pending + stats.incomplete,     sub: "in progress",        color: "text-sky-400"       },
+              { label: "Completed",      value: stats.completed,                                                          sub: "processed",          color: "text-emerald-400"   },
+              { label: "Credited ✓",    value: stats.creditProcessed,                                                    sub: "supplier credited",  color: "text-violet-400"    },
+              { label: "Missing",        value: stats.missing,                                                            sub: "no unit",            color: "text-rose-400"      },
+              { label: "Incomplete",     value: stats.incomplete,                                                         sub: "needs action",       color: "text-amber-400"     },
+            ].map(({ label, value, sub, color }) => (
+              <KpiTile key={label} label={label} value={value} sub={sub} color={color} />
+            ))}
           </div>
+
+          {/* ── Credit financials (only if amounts exist) ── */}
+          {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
+            <div className="flex flex-wrap items-center gap-8 pb-5 border-t border-white/[0.06] pt-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Requested</p>
+                <p className="text-xl font-black text-white tabular-nums">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="text-white/10 text-2xl font-thin hidden sm:block">|</div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Supplier Credited</p>
+                <p className="text-xl font-black text-emerald-400 tabular-nums">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
+              </div>
+              {stats.totalRequestedCredit > 0 && (
+                <>
+                  <div className="text-white/10 text-2xl font-thin hidden sm:block">|</div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-0.5">Outstanding</p>
+                    <p className={cn("text-xl font-black tabular-nums", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-400" : "text-emerald-400")}>
+                      R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </>
+              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-white/25 font-medium uppercase tracking-widest">Live</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1320px] px-4 sm:px-6 py-6 pb-16">
+      {/* ══════════════════════════════════════════
+          CONTENT AREA  (light)
+      ══════════════════════════════════════════ */}
+      <div style={{ background: "#f4f5f7" }} className="min-h-screen">
+        <div className="mx-auto max-w-[1400px] px-6 py-5 pb-16">
 
-        {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-          <AnimatedStatCard label="Total Returns"  value={stats.total}                                                              accent="border-slate-400"  numCls="text-slate-900" />
-          <AnimatedStatCard label="Active"          value={stats.started + stats.inProgress + stats.pending + stats.incomplete}     accent="border-blue-500"   numCls="text-blue-700"  />
-          <AnimatedStatCard label="Completed"       value={stats.completed}                                                         accent="border-emerald-500" numCls="text-emerald-700" />
-          <AnimatedStatCard label="Credited ✓"      value={stats.creditProcessed}                                                   accent="border-violet-500" numCls="text-violet-700" />
-          <AnimatedStatCard label="Missing"         value={stats.missing}                                                           accent="border-rose-500"   numCls="text-rose-700"  />
-          <AnimatedStatCard label="Incomplete"      value={stats.incomplete}                                                        accent="border-amber-500"  numCls="text-amber-700" />
-        </div>
-
-        {/* ── Credit Financial Banner ── */}
-        {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-4 flex flex-wrap gap-6 items-stretch divide-x divide-slate-100">
-            <div className="flex items-center gap-3 pr-6">
-              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <DollarSign className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Requested</p>
-                <p className="text-lg font-black text-slate-900 leading-tight">R {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-6">
-              <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Credited</p>
-                <p className="text-lg font-black text-emerald-700 leading-tight">R {stats.totalSupplierCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</p>
-              </div>
-            </div>
-            {stats.totalRequestedCredit > 0 && (
-              <div className="flex items-center gap-3 pl-6">
-                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0",
-                  stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "bg-rose-50" : "bg-emerald-50")}>
-                  <Activity className={cn("h-4 w-4", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-600" : "text-emerald-600")} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Outstanding</p>
-                  <p className={cn("text-lg font-black leading-tight", stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "text-rose-600" : "text-emerald-700")}>
-                    R {Math.abs(stats.totalRequestedCredit - stats.totalSupplierCredit).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-[10px] text-slate-400">{stats.totalRequestedCredit - stats.totalSupplierCredit > 0 ? "still owed" : "over-credited"}</p>
-                </div>
-              </div>
-            )}
-            <div className="ml-auto flex items-center gap-1.5 pl-6">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] text-slate-400 font-medium">Live</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Live Dashboard ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-slate-400" />
-              <h2 className="text-sm font-semibold text-slate-700">Overview</h2>
-            </div>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
-            </span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Document Type</p>
+          {/* ── Overview panels ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {/* By Type */}
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Document Type</p>
               {(["RFC","GRS","GRN"] as const).map((t) => (
-                <div key={t} className="mb-3">
+                <div key={t} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-600">{t}</span>
-                    <span className="text-xs font-bold text-slate-800">{stats.byType[t]}</span>
+                    <span className="text-xs font-semibold text-slate-600">{t}</span>
+                    <span className="text-xs font-bold text-slate-900">{stats.byType[t]}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-slate-700 transition-all duration-700"
+                    <div className="h-full rounded-full bg-slate-800 transition-all duration-700"
                       style={{ width: stats.total ? `${(stats.byType[t] / stats.total) * 100}%` : "0%" }} />
                   </div>
                 </div>
               ))}
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Status</p>
+            {/* By Status */}
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Status</p>
               {([
                 { k: "completed",   label: "Completed",   color: "bg-emerald-500" },
                 { k: "in_progress", label: "In Progress", color: "bg-blue-500"    },
@@ -989,10 +983,10 @@ function ReturnsTrackerPage() {
                 const count = activeData.filter(d => d.status === k).length;
                 if (count === 0) return null;
                 return (
-                  <div key={k} className="mb-2">
+                  <div key={k} className="mb-2 last:mb-0">
                     <div className="flex justify-between mb-0.5">
                       <span className="text-xs text-slate-500">{label}</span>
-                      <span className="text-xs font-bold text-slate-700">{count}</span>
+                      <span className="text-xs font-bold text-slate-800">{count}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
                       <div className={cn("h-full rounded-full transition-all duration-700", color)}
@@ -1002,16 +996,38 @@ function ReturnsTrackerPage() {
                 );
               })}
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">By Product</p>
+            {/* By Product */}
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Product Type</p>
               {[
                 { label: "Laptop",  val: stats.byProduct.laptop,  color: "bg-sky-500"    },
                 { label: "Printer", val: stats.byProduct.printer, color: "bg-violet-500" },
-                { label: "RMA",     val: stats.byProduct.rma,     color: "bg-amber-500"  },
+                { label: "RMA",     val: stats.byProduct.rma,     color: "bg-amber-400"  },
               ].map(({ label, val, color }) => (
-                <div key={label} className="mb-3">
+                <div key={label} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-medium text-slate-600">{label}</span>
+                    <span className="text-xs font-semibold text-slate-600">{label}</span>
+                    <span className="text-xs font-bold text-slate-900">{val}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
+                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Credit Status */}
+            <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
+              {[
+                { label: "Supplier Credit",  val: stats.supplierCredit,  color: "bg-emerald-500" },
+                { label: "Unit on Hand",     val: stats.unitOnHand,      color: "bg-slate-400"   },
+                { label: "No Physical Unit", val: stats.noPhysicalUnit,  color: "bg-rose-400"    },
+                { label: "Credited ✓",       val: stats.creditProcessed, color: "bg-violet-500"  },
+              ].map(({ label, val, color }) => (
+                <div key={label} className="mb-2 last:mb-0">
+                  <div className="flex justify-between mb-0.5">
+                    <span className="text-xs text-slate-500">{label}</span>
                     <span className="text-xs font-bold text-slate-800">{val}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
@@ -1021,225 +1037,180 @@ function ReturnsTrackerPage() {
                 </div>
               ))}
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Credit Status</p>
-              {[
-                { label: "Supplier Credit",   val: stats.supplierCredit,   color: "bg-emerald-500" },
-                { label: "Unit on Hand",      val: stats.unitOnHand,       color: "bg-slate-400"   },
-                { label: "No Physical Unit",  val: stats.noPhysicalUnit,   color: "bg-rose-400"    },
-                { label: "Credited ✓",        val: stats.creditProcessed,  color: "bg-violet-500"  },
-              ].map(({ label, val, color }) => (
-                <div key={label} className="mb-2">
-                  <div className="flex justify-between mb-0.5">
-                    <span className="text-xs text-slate-500">{label}</span>
-                    <span className="text-xs font-bold text-slate-700">{val}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all duration-700", color)}
-                      style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }} />
-                  </div>
-                </div>
-              ))}
+          </div>
+
+          {/* ── Tabs + Filters row ── */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {/* Tabs */}
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+              <button onClick={() => setActiveTab("active")}
+                className={cn("px-4 py-2 text-xs font-semibold transition-colors border-r border-slate-200",
+                  activeTab === "active" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50")}>
+                Active
+                <span className={cn("ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold",
+                  activeTab === "active" ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500")}>
+                  {activeData.length}
+                </span>
+              </button>
+              <button onClick={() => setActiveTab("credited")}
+                className={cn("px-4 py-2 text-xs font-semibold transition-colors",
+                  activeTab === "credited" ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-50")}>
+                Credited ✓
+                <span className={cn("ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold",
+                  activeTab === "credited" ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500")}>
+                  {creditedData.length}
+                </span>
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* ── Tabs + Filter row ── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-0 border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm">
-            <button
-              onClick={() => setActiveTab("active")}
-              className={cn("px-4 py-2 text-sm font-medium transition-colors border-r border-slate-200",
-                activeTab === "active" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")}
-            >
-              Active
-              <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded",
-                activeTab === "active" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600")}>
-                {activeData.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("credited")}
-              className={cn("px-4 py-2 text-sm font-medium transition-colors",
-                activeTab === "credited" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")}
-            >
-              Credited ✓
-              <span className={cn("ml-2 text-[11px] font-bold px-1.5 py-0.5 rounded",
-                activeTab === "credited" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600")}>
-                {creditedData.length}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* ── Filters ── */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div className="flex items-center gap-2 flex-1 min-w-[220px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ref, job no., serial, store, notes…"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400 text-slate-700"
-            />
-            {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700"><X className="h-3.5 w-3.5" /></button>}
-          </div>
-          {activeTab === "active" && (
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All statuses" /></SelectTrigger>
+            {/* Search */}
+            <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+              <Search className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search ref, job no., serial, store…"
+                className="flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-700" />
+              {search && <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700"><X className="h-3 w-3" /></button>}
+            </div>
+            {activeTab === "active" && (
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="started">Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="incomplete">Incomplete</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="missing">Missing</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-[110px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All types" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="started">Started</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="incomplete">Incomplete</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="missing">Missing</SelectItem>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="RFC">RFC</SelectItem>
+                <SelectItem value="GRS">GRS</SelectItem>
+                <SelectItem value="GRN">GRN</SelectItem>
               </SelectContent>
             </Select>
-          )}
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[120px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All types" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              <SelectItem value="RFC">RFC</SelectItem>
-              <SelectItem value="GRS">GRS</SelectItem>
-              <SelectItem value="GRN">GRN</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-[165px] bg-white border-slate-200 text-slate-700 rounded-lg text-sm h-9"><SelectValue placeholder="All stores" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All stores</SelectItem>
-              {stores.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm">
-            <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="text-sm bg-transparent outline-none text-slate-700" title="From date" />
-            <span className="text-slate-300 text-xs">–</span>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="text-sm bg-transparent outline-none text-slate-700" title="To date" />
-            {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="text-slate-400 hover:text-slate-700"><X className="h-3.5 w-3.5" /></button>
+            <Select value={storeFilter} onValueChange={setStoreFilter}>
+              <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm"><SelectValue placeholder="All stores" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All stores</SelectItem>
+                {stores.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-2 shadow-sm">
+              <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="text-xs bg-transparent outline-none text-slate-600" />
+              <span className="text-slate-300">–</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="text-xs bg-transparent outline-none text-slate-600" />
+              {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(""); setDateTo(""); }}><X className="h-3 w-3 text-slate-400 hover:text-slate-700" /></button>}
+            </div>
+          </div>
+
+          {/* ── Table ── */}
+          <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[1100px]">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <Th onClick={() => toggleSort("refType")}>Type</Th>
+                    <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
+                    <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
+                    <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
+                    <Th onClick={() => toggleSort("storeName")}>Store</Th>
+                    <Th>Product</Th>
+                    <Th>Bundle</Th>
+                    <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
+                    <Th onClick={() => toggleSort("status")}>Status</Th>
+                    <Th>Credit</Th>
+                    <Th onClick={() => toggleSort("date")}>Date</Th>
+                    <Th>Notes</Th>
+                    <th className="px-3 py-3 w-[130px]" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr><td colSpan={13}><div className="py-16 text-center"><Loader2 className="h-7 w-7 mx-auto mb-3 animate-spin text-slate-300" /><p className="text-sm text-slate-400">Loading returns…</p></div></td></tr>
+                  ) : isError ? (
+                    <tr><td colSpan={13}><div className="py-14 text-center"><AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" /><p className="text-sm font-medium text-slate-600">Failed to load</p></div></td></tr>
+                  ) : filtered.length === 0 ? (
+                    <tr><td colSpan={13}><div className="py-16 text-center">
+                      <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                      <p className="text-sm font-semibold text-slate-500 mb-1">{tableSource.length === 0 ? (activeTab === "credited" ? "No credited returns yet" : "No returns yet") : "No results"}</p>
+                      <span className="text-xs text-slate-400">{tableSource.length === 0 ? (activeTab === "credited" ? "Move returns here once credited." : 'Click "Add Return" to get started.') : "Adjust your filters."}</span>
+                    </div></td></tr>
+                  ) : (
+                    filtered.map((r, idx) => (
+                      <tr key={r.id}
+                        className={cn("border-b border-slate-100 last:border-0 hover:bg-blue-50/30 transition-colors cursor-pointer group",
+                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/30")}
+                        onClick={() => setViewEntry(r)}>
+                        <td className="px-3.5 py-3">
+                          <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-900 text-white">{r.refType}</span>
+                        </td>
+                        <td className="px-3.5 py-3">
+                          <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{r.refNumber || "—"}</span>
+                        </td>
+                        <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.jobNumber || "—"}</td>
+                        <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.serialNumber || "—"}</td>
+                        <td className="px-3.5 py-3 text-xs font-semibold text-slate-800">{r.storeName || "—"}</td>
+                        <td className="px-3.5 py-3"><ProductTypeCell value={r.productType} /></td>
+                        <td className="px-3.5 py-3"><BundleCell value={r.bundle} /></td>
+                        <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>{r.unitLocation || "—"}</td>
+                        <td className="px-3.5 py-3"><StatusBadge status={r.status} /></td>
+                        <td className="px-3.5 py-3 text-xs">
+                          {r.creditStatus === "supplier_credit" ? (
+                            <div>
+                              <span className="font-semibold text-emerald-700 block text-[11px]">Supplier credit</span>
+                              <span className="font-mono text-[10px] text-slate-400">{r.creditNoteNumber || "—"}</span>
+                            </div>
+                          ) : r.creditStatus === "no_physical_unit" ? (
+                            <span className="text-[11px] font-semibold text-rose-600">No unit</span>
+                          ) : (
+                            <span className="text-[11px] text-slate-500">On hand</span>
+                          )}
+                        </td>
+                        <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
+                          {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                        </td>
+                        <td className="px-3.5 py-3 text-xs text-slate-400 max-w-[180px] truncate" title={r.notes}>{r.notes || "—"}</td>
+                        <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            {activeTab === "active" ? (
+                              <button title="Mark as Credited" onClick={() => markCreditedMutation.mutate(r)} disabled={markCreditedMutation.isPending}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-violet-100 hover:bg-violet-200 text-violet-700 transition-colors disabled:opacity-50">
+                                {markCreditedMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}Credit
+                              </button>
+                            ) : (
+                              <button title="Restore to Active" onClick={() => restoreActiveMutation.mutate(r)} disabled={restoreActiveMutation.isPending}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+                                ↩ Restore
+                              </button>
+                            )}
+                            <IconBtn label="Edit" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
+                            <IconBtn label="Delete" danger onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></IconBtn>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length > 0 && (
+              <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
+                <p className="text-[11px] text-slate-400">Showing <strong className="text-slate-600">{filtered.length}</strong> of <strong className="text-slate-600">{tableSource.length}</strong> entries</p>
+                <p className="text-[11px] text-slate-400 hidden sm:block">Hover a row to reveal actions</p>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* ── Table ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[1100px]">
-              <thead>
-                <tr className="bg-slate-900 text-slate-300 text-left border-b border-slate-800">
-                  <Th onClick={() => toggleSort("refType")}>Type</Th>
-                  <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
-                  <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
-                  <Th onClick={() => toggleSort("serialNumber")}>Serial No.</Th>
-                  <Th onClick={() => toggleSort("storeName")}>Store</Th>
-                  <Th>Product</Th>
-                  <Th>Bundle</Th>
-                  <Th onClick={() => toggleSort("unitLocation")}>Location</Th>
-                  <Th onClick={() => toggleSort("status")}>Status</Th>
-                  <Th>Credit</Th>
-                  <Th onClick={() => toggleSort("date")}>Date</Th>
-                  <Th>Notes</Th>
-                  <th className="px-3 py-3 w-[130px]" />
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr><td colSpan={13}><div className="py-16 text-center text-muted-foreground"><Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin opacity-40" /><p className="font-medium">Loading returns…</p></div></td></tr>
-                ) : isError ? (
-                  <tr><td colSpan={13}><div className="py-14 text-center"><AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500 opacity-60" /><p className="font-medium mb-1">Failed to load data</p></div></td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={13}><div className="py-16 text-center text-muted-foreground">
-                    <PackageOpen className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                    <p className="text-foreground font-semibold mb-1">{tableSource.length === 0 ? (activeTab === "credited" ? "No credited returns yet" : "No returns yet") : "No results found"}</p>
-                    <span className="text-sm">{tableSource.length === 0 ? (activeTab === "credited" ? "Move returns here once credited." : 'Click "Add Return" to log your first entry.') : "Try adjusting your search or filters."}</span>
-                  </div></td></tr>
-                ) : (
-                  filtered.map((r, idx) => (
-                    <tr
-                      key={r.id}
-                      className={cn("border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors cursor-pointer",
-                        idx % 2 === 0 ? "bg-white" : "bg-slate-50/40")}
-                      onClick={() => setViewEntry(r)}
-                    >
-                      <td className="px-3.5 py-3">
-                        <span className="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-900 text-white">{r.refType}</span>
-                      </td>
-                      <td className="px-3.5 py-3"><span className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg border bg-slate-50 text-slate-700">{r.refNumber || "—"}</span></td>
-                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.jobNumber || "—"}</td>
-                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">{r.serialNumber || "—"}</td>
-                      <td className="px-3.5 py-3 font-semibold text-sm text-slate-800 dark:text-foreground">{r.storeName || "—"}</td>
-                      <td className="px-3.5 py-3"><ProductTypeCell value={r.productType} /></td>
-                      <td className="px-3.5 py-3"><BundleCell value={r.bundle} /></td>
-                      <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>{r.unitLocation || "—"}</td>
-                      <td className="px-3.5 py-3"><StatusBadge status={r.status} /></td>
-                      <td className="px-3.5 py-3 text-xs">
-                        {r.creditStatus === "supplier_credit" ? (
-                          <div>
-                            <span className="font-semibold text-emerald-700 block">Supplier credit</span>
-                            <span className="font-mono text-[11px] text-muted-foreground">{r.creditNoteNumber || "—"}</span>
-                          </div>
-                        ) : r.creditStatus === "no_physical_unit" ? (
-                          <span className="font-semibold text-rose-600">No unit</span>
-                        ) : (
-                          <span className="text-slate-600">On hand</span>
-                        )}
-                      </td>
-                      <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
-                        {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
-                      </td>
-                      <td className="px-3.5 py-3 text-xs text-slate-500 max-w-[180px] truncate" title={r.notes}>{r.notes || "—"}</td>
-                      <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1 justify-end">
-                          {activeTab === "active" ? (
-                            <button
-                              title="Mark as Credited"
-                              onClick={() => markCreditedMutation.mutate(r)}
-                              disabled={markCreditedMutation.isPending}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-700 transition-colors disabled:opacity-50"
-                            >
-                              {markCreditedMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
-                              Credit
-                            </button>
-                          ) : (
-                            <button
-                              title="Move back to Active"
-                              onClick={() => restoreActiveMutation.mutate(r)}
-                              disabled={restoreActiveMutation.isPending}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50"
-                            >
-                              ↩ Restore
-                            </button>
-                          )}
-                          <IconBtn label="Edit" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></IconBtn>
-                          <IconBtn label="Delete" danger onClick={() => remove(r.id)}><Trash2 className="h-3.5 w-3.5" /></IconBtn>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {filtered.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-              <p className="text-xs text-slate-400">Showing <strong className="text-slate-600">{filtered.length}</strong> of <strong className="text-slate-600">{tableSource.length}</strong> entries</p>
-              {activeTab === "active" && <p className="text-xs text-slate-400 hidden sm:block">Click a row for details · Use <strong>Credit</strong> to move to Credited</p>}
-            </div>
-          )}
         </div>
-
-        <p className="text-xs text-slate-400 mt-4 text-center">
-          Omni Technical Solutions · Returns Tracker · Data saved to cloud
-        </p>
       </div>
-
-
       {/* Add / Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[92vh] overflow-y-auto">
@@ -1543,9 +1514,20 @@ function AnimatedStatCard({ label, value, accent, numCls }: { label: string; val
   );
 }
 
+function KpiTile({ label, value, sub, color }: { label: string; value: number; sub: string; color: string }) {
+  const animated = useCountUp(value);
+  return (
+    <div className="px-6 py-5 flex flex-col gap-1" style={{ background: "rgba(255,255,255,0.03)" }}>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35">{label}</p>
+      <p className={cn("text-4xl font-black tabular-nums leading-none", color)}>{animated}</p>
+      <p className="text-[10px] text-white/25">{sub}</p>
+    </div>
+  );
+}
+
 function Th({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <th onClick={onClick} className={cn("px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-300 whitespace-nowrap select-none", onClick && "cursor-pointer hover:text-white")}>
+    <th onClick={onClick} className={cn("px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap select-none", onClick && "cursor-pointer hover:text-slate-700")}>
       <span className="inline-flex items-center gap-1">{children}{onClick && <ArrowUpDown className="h-3 w-3 opacity-50" />}</span>
     </th>
   );
