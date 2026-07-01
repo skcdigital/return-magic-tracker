@@ -49,8 +49,6 @@ import {
   BarChart3,
   TrendingUp,
   DollarSign,
-  FileText,
-  ZoomIn,
   Activity,
   CreditCard,
 } from "lucide-react";
@@ -134,8 +132,6 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   creditStatus: "unit_on_hand",
   creditNoteNumber: "",
   notes: "",
-  grsRfcGrnImageUrl: "",
-  supplierCreditImageUrl: "",
   requestedCreditAmount: "",
   supplierCreditAmount: "",
 });
@@ -263,7 +259,6 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [imageModal, setImageModal] = useState<{ url: string; label: string } | null>(null);
   const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
 
   const filtered = useMemo(() => {
@@ -448,41 +443,8 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                       {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                     </td>
-                    <td
-                      className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate"
-                      title={r.notes}
-                    >
+                    <td className="px-3.5 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate" title={r.notes}>
                       {r.notes || "—"}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1">
-                        {r.grsRfcGrnImageUrl && (
-                          <button
-                            onClick={() =>
-                              setImageModal({
-                                url: r.grsRfcGrnImageUrl,
-                                label: "GRS/RFC/GRN Document",
-                              })
-                            }
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold text-[11px] cursor-pointer transition-colors"
-                          >
-                            📄 GRS/RFC/GRN
-                          </button>
-                        )}
-                        {r.supplierCreditImageUrl && (
-                          <button
-                            onClick={() =>
-                              setImageModal({
-                                url: r.supplierCreditImageUrl,
-                                label: "Supplier Credit Note",
-                              })
-                            }
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-semibold text-[11px] cursor-pointer transition-colors"
-                          >
-                            💳 Credit Note
-                          </button>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))}
@@ -606,29 +568,6 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                   </p>
                 </div>
               )}
-              {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
-                <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    Attached Documents
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {viewEntry.grsRfcGrnImageUrl && (
-                      <DocPreview
-                        url={viewEntry.grsRfcGrnImageUrl}
-                        label="GRS/RFC/GRN Document"
-                        color="blue"
-                      />
-                    )}
-                    {viewEntry.supplierCreditImageUrl && (
-                      <DocPreview
-                        url={viewEntry.supplierCreditImageUrl}
-                        label="Supplier Credit Note"
-                        color="emerald"
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="flex justify-end px-5 pb-5 pt-2 border-t">
               <Button variant="outline" size="sm" onClick={() => setViewEntry(null)}>
@@ -639,56 +578,6 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         </div>
       )}
 
-      {/* Image/PDF Modal */}
-      {imageModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setImageModal(null)}
-        >
-          <div
-            className="bg-white rounded-lg max-w-2xl max-h-[80vh] overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
-              <h3 className="font-semibold text-sm">{imageModal.label}</h3>
-              <button
-                onClick={() => setImageModal(null)}
-                className="p-1 hover:bg-muted rounded transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="p-4">
-              {imageModal.url.startsWith("data:application/pdf") ? (
-                <object
-                  data={imageModal.url}
-                  type="application/pdf"
-                  className="w-full min-h-[600px]"
-                >
-                  <p className="text-sm text-muted-foreground">
-                    PDF preview is not supported by your browser.
-                    <a
-                      href={imageModal.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 underline ml-1"
-                    >
-                      Open PDF in a new tab
-                    </a>
-                    .
-                  </p>
-                </object>
-              ) : (
-                <img
-                  src={imageModal.url}
-                  alt={imageModal.label}
-                  className="w-full max-h-[600px] object-contain"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -928,8 +817,6 @@ function ReturnsTrackerPage() {
       creditStatus: r.creditStatus ?? "unit_on_hand",
       creditNoteNumber: r.creditNoteNumber ?? "",
       notes: r.notes,
-      grsRfcGrnImageUrl: r.grsRfcGrnImageUrl ?? "",
-      supplierCreditImageUrl: r.supplierCreditImageUrl ?? "",
       requestedCreditAmount: r.requestedCreditAmount ?? "",
       supplierCreditAmount: r.supplierCreditAmount ?? "",
     });
@@ -2062,137 +1949,9 @@ function ReturnsTrackerPage() {
             {/* Section: Documents & Notes */}
             <div>
               <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
-                Documents & Notes
+                Notes
               </h3>
               <div className="space-y-4">
-                <Field label="GRS / RFC / GRN Document">
-                  <div className="flex flex-col gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-sm text-slate-600 transition-colors w-fit">
-                      <FileText className="h-4 w-4 text-slate-400" />
-                      {form.grsRfcGrnImageUrl ? "Replace document" : "Attach document"}
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="sr-only"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (evt) => {
-                              setForm((f) => ({
-                                ...f,
-                                grsRfcGrnImageUrl: evt.target?.result as string,
-                              }));
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                    {form.grsRfcGrnImageUrl &&
-                      (form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
-                        <div className="flex items-center gap-3">
-                          <a
-                            href={form.grsRfcGrnImageUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                          >
-                            <FileSpreadsheet className="h-4 w-4" /> View PDF
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => setForm((f) => ({ ...f, grsRfcGrnImageUrl: "" }))}
-                            className="text-xs text-rose-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={form.grsRfcGrnImageUrl}
-                            alt="GRS/RFC/GRN"
-                            className="h-20 w-auto rounded-lg border"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setForm((f) => ({ ...f, grsRfcGrnImageUrl: "" }))}
-                            className="text-xs text-rose-600 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                </Field>
-                {form.creditStatus === "supplier_credit" && (
-                  <Field label="Supplier Credit Note">
-                    <div className="flex flex-col gap-2">
-                      <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-sm text-slate-600 transition-colors w-fit">
-                        <FileText className="h-4 w-4 text-slate-400" />
-                        {form.supplierCreditImageUrl ? "Replace document" : "Attach document"}
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="sr-only"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (evt) => {
-                                setForm((f) => ({
-                                  ...f,
-                                  supplierCreditImageUrl: evt.target?.result as string,
-                                }));
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </label>
-                      {form.supplierCreditImageUrl &&
-                        (form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
-                          <div className="flex items-center gap-3">
-                            <a
-                              href={form.supplierCreditImageUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                            >
-                              <FileSpreadsheet className="h-4 w-4" /> View PDF
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setForm((f) => ({ ...f, supplierCreditImageUrl: "" }))
-                              }
-                              className="text-xs text-rose-600 hover:underline"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={form.supplierCreditImageUrl}
-                              alt="Credit Note"
-                              className="h-20 w-auto rounded-lg border"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setForm((f) => ({ ...f, supplierCreditImageUrl: "" }))
-                              }
-                              className="text-xs text-rose-600 hover:underline"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                    </div>
-                  </Field>
-                )}
                 <Field label="Notes">
                   <Textarea
                     value={form.notes}
@@ -2337,31 +2096,6 @@ function ReturnsTrackerPage() {
                   <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">
                     {viewEntry.notes}
                   </p>
-                </div>
-              )}
-
-              {/* Documents */}
-              {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
-                <div className="col-span-2 border-t pt-3 mt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    Attached Documents
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {viewEntry.grsRfcGrnImageUrl && (
-                      <DocPreview
-                        url={viewEntry.grsRfcGrnImageUrl}
-                        label="GRS/RFC/GRN Document"
-                        color="blue"
-                      />
-                    )}
-                    {viewEntry.supplierCreditImageUrl && (
-                      <DocPreview
-                        url={viewEntry.supplierCreditImageUrl}
-                        label="Supplier Credit Note"
-                        color="emerald"
-                      />
-                    )}
-                  </div>
                 </div>
               )}
             </div>
@@ -2542,64 +2276,6 @@ function DetailRow({
         {label}
       </p>
       <p className={cn("text-sm text-foreground", mono && "font-mono")}>{value || "—"}</p>
-    </div>
-  );
-}
-
-function DocPreview({
-  url,
-  label,
-  color,
-}: {
-  url: string;
-  label: string;
-  color: "blue" | "emerald";
-}) {
-  const isPdf = url.startsWith("data:application/pdf");
-  const cls =
-    color === "blue"
-      ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-      : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100";
-
-  if (isPdf) {
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        download={`${label}.pdf`}
-        className={cn(
-          "flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors",
-          cls,
-        )}
-      >
-        <FileText className="h-5 w-5" /> {label}
-        <span className="text-[11px] font-normal opacity-70 ml-1">
-          PDF · click to view / download
-        </span>
-      </a>
-    );
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
-      <a href={url} target="_blank" rel="noreferrer" download={`${label}.jpg`}>
-        <img
-          src={url}
-          alt={label}
-          className="h-36 w-auto rounded-lg border shadow-sm hover:shadow-md transition-shadow object-cover"
-        />
-      </a>
-      <a
-        href={url}
-        download={`${label}.jpg`}
-        className={cn(
-          "inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2 py-1 border transition-colors self-start",
-          cls,
-        )}
-      >
-        <Download className="h-3.5 w-3.5" /> Download
-      </a>
     </div>
   );
 }
