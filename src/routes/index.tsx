@@ -38,6 +38,7 @@ import {
   PlayCircle,
   Clock,
   AlertTriangle,
+  AlertCircle,
   Calendar as CalendarIcon,
   ArrowUpDown,
   Check,
@@ -67,6 +68,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -734,12 +736,27 @@ function ReturnsTrackerPage() {
   const [form, setForm] = useState(emptyEntry());
   const [copyToast, setCopyToast] = useState(false);
   const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toastMsg) return;
+    const t = setTimeout(() => setToastMsg(null), 3500);
+    return () => clearTimeout(t);
+  }, [toastMsg]);
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) => fetchCreate({ data: entry }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
       setModalOpen(false);
+      setSaveError(null);
+      setSubmitAttempted(false);
+      setToastMsg("Return added successfully");
+    },
+    onError: (err) => {
+      setSaveError(err instanceof Error ? err.message : "Failed to save — please try again.");
     },
   });
 
@@ -748,6 +765,12 @@ function ReturnsTrackerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
       setModalOpen(false);
+      setSaveError(null);
+      setSubmitAttempted(false);
+      setToastMsg("Changes saved successfully");
+    },
+    onError: (err) => {
+      setSaveError(err instanceof Error ? err.message : "Failed to save — please try again.");
     },
   });
 
@@ -858,6 +881,8 @@ function ReturnsTrackerPage() {
   function openAdd() {
     setEditingId(null);
     setForm(emptyEntry());
+    setSaveError(null);
+    setSubmitAttempted(false);
     setModalOpen(true);
   }
 
@@ -882,11 +907,15 @@ function ReturnsTrackerPage() {
       requestedCreditAmount: r.requestedCreditAmount ?? "",
       supplierCreditAmount: r.supplierCreditAmount ?? "",
     });
+    setSaveError(null);
+    setSubmitAttempted(false);
     setModalOpen(true);
   }
 
   function save() {
+    setSubmitAttempted(true);
     if (!form.refNumber.trim()) return;
+    setSaveError(null);
     if (editingId) updateMutation.mutate({ ...form, id: editingId, createdAt: "" });
     else createMutation.mutate(form);
   }
@@ -1683,326 +1712,455 @@ function ReturnsTrackerPage() {
         </p>
       </main>
       {/* Add / Edit Modal */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Return" : "Add Return"}</DialogTitle>
+      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setSaveError(null); setSubmitAttempted(false); } setModalOpen(open); }}>
+        <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto">
+          <DialogHeader className="pb-1">
+            <DialogTitle className="text-lg font-semibold">
+              {editingId ? "Edit Return" : "Add Return"}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              {editingId
+                ? "Update the details for this return entry."
+                : "Fill in the details to log a new return entry."}
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
-            <Field label="Reference Type">
-              <Select
-                value={form.refType}
-                onValueChange={(v) => setForm((f) => ({ ...f, refType: v as RefType }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="RFC">RFC</SelectItem>
-                  <SelectItem value="GRS">GRS</SelectItem>
-                  <SelectItem value="GRN">GRN</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Reference Number *">
-              <Input
-                value={form.refNumber}
-                onChange={(e) => setForm((f) => ({ ...f, refNumber: e.target.value }))}
-                placeholder="e.g. RFC-20241"
-              />
-            </Field>
-            <Field label="Job Number">
-              <Input
-                value={form.jobNumber}
-                onChange={(e) => setForm((f) => ({ ...f, jobNumber: e.target.value }))}
-                placeholder="e.g. JOB-00312"
-              />
-            </Field>
-            <Field label="Serial Number">
-              <Input
-                value={form.serialNumber}
-                onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
-                placeholder="e.g. SN7812345600"
-              />
-            </Field>
-            <Field label="Retailer" className="sm:col-span-2">
-              <div className="flex flex-col gap-2">
-                <Select
-                  value={
-                    RETAILERS.includes(form.storeName.split(" - ")[0])
-                      ? form.storeName.split(" - ")[0]
-                      : "__custom"
-                  }
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select retailer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RETAILERS.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="__custom">Other (type below)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.storeName && (
-                  <Input
-                    value={form.storeName.includes(" - ") ? form.storeName.split(" - ")[1] : ""}
-                    onChange={(e) => {
-                      const retailer =
-                        RETAILERS.find((r) => form.storeName.startsWith(r)) ||
-                        form.storeName.split(" - ")[0];
-                      setForm((f) => ({
-                        ...f,
-                        storeName: e.target.value ? `${retailer} - ${e.target.value}` : retailer,
-                      }));
-                    }}
-                    placeholder="Branch / Store location (e.g. Sandton, Westgate)"
-                  />
-                )}
-                {!RETAILERS.includes(form.storeName.split(" - ")[0]) && form.storeName && (
-                  <Input
-                    value={form.storeName.split(" - ")[0]}
-                    onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
-                    placeholder="Store name"
-                  />
-                )}
-              </div>
-            </Field>
-            <Field label="Product Type">
-              <Select
-                value={form.productType}
-                onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="laptop">Laptop</SelectItem>
-                  <SelectItem value="printer">Printer</SelectItem>
-                  <SelectItem value="rma">RMA (Flash Driver, SSD, SD Card, etc)</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Bundle Received?">
-              <Select
-                value={form.bundle}
-                onValueChange={(v) => setForm((f) => ({ ...f, bundle: v as Bundle }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yes">Yes — full bundle</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                  <SelectItem value="standalone_laptop">Standalone laptop</SelectItem>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Unit Location">
-              <Input
-                value={form.unitLocation}
-                onChange={(e) => setForm((f) => ({ ...f, unitLocation: e.target.value }))}
-                placeholder="e.g. Shelf B3, Warehouse"
-              />
-            </Field>
-            <Field label="Date">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !form.date && "text-muted-foreground",
-                    )}
+
+          {saveError && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{saveError}</span>
+            </div>
+          )}
+
+          <div className="space-y-6 py-1">
+            {/* Section: Reference Details */}
+            <div>
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+                Reference Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Document Type">
+                  <Select
+                    value={form.refType}
+                    onValueChange={(v) => setForm((f) => ({ ...f, refType: v as RefType }))}
                   >
-                    <CalendarIcon className="h-4 w-4" />
-                    {formDate ? format(formDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formDate}
-                    onSelect={(d) =>
-                      setForm((f) => ({ ...f, date: d ? format(d, "yyyy-MM-dd") : "" }))
-                    }
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="RFC">RFC</SelectItem>
+                      <SelectItem value="GRS">GRS</SelectItem>
+                      <SelectItem value="GRN">GRN</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Reference Number *">
+                  <Input
+                    value={form.refNumber}
+                    onChange={(e) => setForm((f) => ({ ...f, refNumber: e.target.value }))}
+                    placeholder="e.g. RFC-20241"
+                    className={cn(
+                      submitAttempted &&
+                        !form.refNumber.trim() &&
+                        "border-rose-400 focus-visible:ring-rose-400",
+                    )}
                   />
-                </PopoverContent>
-              </Popover>
-            </Field>
-            <Field label="Status">
-              <Select
-                value={form.status}
-                onValueChange={(v) => setForm((f) => ({ ...f, status: v as Status }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="started">Started</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="incomplete">Incomplete</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="credit_processed">Credit Processed ✓</SelectItem>
-                  <SelectItem value="missing">Missing</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Credit Status" className="sm:col-span-2">
-              <Select
-                value={form.creditStatus}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    creditStatus: v as CreditStatus,
-                    creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unit_on_hand">Unit on hand (physical unit with us)</SelectItem>
-                  <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
-                  <SelectItem value="no_physical_unit">
-                    No physical unit (lost / not returned)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            {form.creditStatus === "supplier_credit" && (
-              <Field label="Credit Note Number *" className="sm:col-span-2">
-                <Input
-                  value={form.creditNoteNumber}
-                  onChange={(e) => setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))}
-                  placeholder="e.g. CN-2024-00872"
-                />
-              </Field>
-            )}
-            <Field label="Credit Amount Requested (R)" className="sm:col-span-1">
-              <Input
-                type="text"
-                value={form.requestedCreditAmount}
-                onChange={(e) => setForm((f) => ({ ...f, requestedCreditAmount: e.target.value }))}
-                placeholder="e.g. 4 999.00"
-              />
-            </Field>
-            <Field label="Supplier Credit Amount (R)" className="sm:col-span-1">
-              <Input
-                type="text"
-                value={form.supplierCreditAmount}
-                onChange={(e) => setForm((f) => ({ ...f, supplierCreditAmount: e.target.value }))}
-                placeholder="e.g. 4 500.00"
-              />
-            </Field>
-            <Field label="GRS/RFC/GRN Document" className="sm:col-span-2">
-              <div className="flex flex-col gap-2">
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (evt) => {
-                        setForm((f) => ({ ...f, grsRfcGrnImageUrl: evt.target?.result as string }));
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
-                />
-                {form.grsRfcGrnImageUrl &&
-                  (form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
-                    <a
-                      href={form.grsRfcGrnImageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                    >
-                      <FileSpreadsheet className="h-4 w-4" /> View PDF document
-                    </a>
-                  ) : (
-                    <img
-                      src={form.grsRfcGrnImageUrl}
-                      alt="GRS/RFC/GRN"
-                      className="h-24 w-auto rounded border"
-                    />
-                  ))}
+                  {submitAttempted && !form.refNumber.trim() && (
+                    <p className="text-xs text-rose-600 mt-1">Reference number is required.</p>
+                  )}
+                </Field>
+                <Field label="Job Number">
+                  <Input
+                    value={form.jobNumber}
+                    onChange={(e) => setForm((f) => ({ ...f, jobNumber: e.target.value }))}
+                    placeholder="e.g. JOB-00312"
+                  />
+                </Field>
+                <Field label="Serial Number">
+                  <Input
+                    value={form.serialNumber}
+                    onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
+                    placeholder="e.g. SN7812345600"
+                  />
+                </Field>
+                <Field label="Date">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !form.date && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                        {formDate ? format(formDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formDate}
+                        onSelect={(d) =>
+                          setForm((f) => ({ ...f, date: d ? format(d, "yyyy-MM-dd") : "" }))
+                        }
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </Field>
               </div>
-            </Field>
-            {form.creditStatus === "supplier_credit" && (
-              <Field label="Supplier Credit Note Image" className="sm:col-span-2">
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
+            </div>
+
+            {/* Section: Return Details */}
+            <div>
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+                Return Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Retailer" className="sm:col-span-2">
+                  <div className="flex flex-col gap-2">
+                    <Select
+                      value={
+                        RETAILERS.includes(form.storeName.split(" - ")[0])
+                          ? form.storeName.split(" - ")[0]
+                          : "__custom"
+                      }
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, storeName: v === "__custom" ? "" : v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select retailer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RETAILERS.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom">Other (type below)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.storeName && (
+                      <Input
+                        value={
+                          form.storeName.includes(" - ") ? form.storeName.split(" - ")[1] : ""
+                        }
+                        onChange={(e) => {
+                          const retailer =
+                            RETAILERS.find((r) => form.storeName.startsWith(r)) ||
+                            form.storeName.split(" - ")[0];
                           setForm((f) => ({
                             ...f,
-                            supplierCreditImageUrl: evt.target?.result as string,
+                            storeName: e.target.value
+                              ? `${retailer} - ${e.target.value}`
+                              : retailer,
                           }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="block text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100"
-                  />
-                  {form.supplierCreditImageUrl &&
-                    (form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
-                      <a
-                        href={form.supplierCreditImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-                      >
-                        <FileSpreadsheet className="h-4 w-4" /> View PDF document
-                      </a>
-                    ) : (
-                      <img
-                        src={form.supplierCreditImageUrl}
-                        alt="Credit Note"
-                        className="h-24 w-auto rounded border"
+                        }}
+                        placeholder="Branch / Store location (e.g. Sandton, Westgate)"
                       />
-                    ))}
-                </div>
-              </Field>
-            )}
-            <Field label="Notes" className="sm:col-span-2">
-              <Textarea
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                placeholder="Query details, credit status, any relevant info…"
-                rows={3}
-              />
-            </Field>
+                    )}
+                    {!RETAILERS.includes(form.storeName.split(" - ")[0]) && form.storeName && (
+                      <Input
+                        value={form.storeName.split(" - ")[0]}
+                        onChange={(e) => setForm((f) => ({ ...f, storeName: e.target.value }))}
+                        placeholder="Store name"
+                      />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Product Type">
+                  <Select
+                    value={form.productType}
+                    onValueChange={(v) => setForm((f) => ({ ...f, productType: v as ProductType }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="laptop">Laptop</SelectItem>
+                      <SelectItem value="printer">Printer</SelectItem>
+                      <SelectItem value="rma">RMA (Flash Driver, SSD, SD Card, etc)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Bundle Received">
+                  <Select
+                    value={form.bundle}
+                    onValueChange={(v) => setForm((f) => ({ ...f, bundle: v as Bundle }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes — full bundle</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="standalone_laptop">Standalone laptop</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Unit Location">
+                  <Input
+                    value={form.unitLocation}
+                    onChange={(e) => setForm((f) => ({ ...f, unitLocation: e.target.value }))}
+                    placeholder="e.g. Shelf B3, Warehouse"
+                  />
+                </Field>
+                <Field label="Status">
+                  <Select
+                    value={form.status}
+                    onValueChange={(v) => setForm((f) => ({ ...f, status: v as Status }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="started">Started</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="incomplete">Incomplete</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="credit_processed">Credit Processed ✓</SelectItem>
+                      <SelectItem value="missing">Missing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
+            {/* Section: Credit Information */}
+            <div>
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+                Credit Information
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Credit Status" className="sm:col-span-2">
+                  <Select
+                    value={form.creditStatus}
+                    onValueChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        creditStatus: v as CreditStatus,
+                        creditNoteNumber: v === "unit_on_hand" ? "" : f.creditNoteNumber,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unit_on_hand">
+                        Unit on hand (physical unit with us)
+                      </SelectItem>
+                      <SelectItem value="supplier_credit">Supplier provided credit</SelectItem>
+                      <SelectItem value="no_physical_unit">
+                        No physical unit (lost / not returned)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {form.creditStatus === "supplier_credit" && (
+                  <Field label="Credit Note Number" className="sm:col-span-2">
+                    <Input
+                      value={form.creditNoteNumber}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, creditNoteNumber: e.target.value }))
+                      }
+                      placeholder="e.g. CN-2024-00872"
+                    />
+                  </Field>
+                )}
+                <Field label="Credit Amount Requested (R)">
+                  <Input
+                    type="text"
+                    value={form.requestedCreditAmount}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, requestedCreditAmount: e.target.value }))
+                    }
+                    placeholder="e.g. 4 999.00"
+                  />
+                </Field>
+                <Field label="Supplier Credit Amount (R)">
+                  <Input
+                    type="text"
+                    value={form.supplierCreditAmount}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, supplierCreditAmount: e.target.value }))
+                    }
+                    placeholder="e.g. 4 500.00"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Section: Documents & Notes */}
+            <div>
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+                Documents & Notes
+              </h3>
+              <div className="space-y-4">
+                <Field label="GRS / RFC / GRN Document">
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-sm text-slate-600 transition-colors w-fit">
+                      <FileText className="h-4 w-4 text-slate-400" />
+                      {form.grsRfcGrnImageUrl ? "Replace document" : "Attach document"}
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              setForm((f) => ({
+                                ...f,
+                                grsRfcGrnImageUrl: evt.target?.result as string,
+                              }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                    {form.grsRfcGrnImageUrl &&
+                      (form.grsRfcGrnImageUrl.startsWith("data:application/pdf") ? (
+                        <div className="flex items-center gap-3">
+                          <a
+                            href={form.grsRfcGrnImageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                          >
+                            <FileSpreadsheet className="h-4 w-4" /> View PDF
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, grsRfcGrnImageUrl: "" }))}
+                            className="text-xs text-rose-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={form.grsRfcGrnImageUrl}
+                            alt="GRS/RFC/GRN"
+                            className="h-20 w-auto rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, grsRfcGrnImageUrl: "" }))}
+                            className="text-xs text-rose-600 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </Field>
+                {form.creditStatus === "supplier_credit" && (
+                  <Field label="Supplier Credit Note">
+                    <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-4 py-2.5 text-sm text-slate-600 transition-colors w-fit">
+                        <FileText className="h-4 w-4 text-slate-400" />
+                        {form.supplierCreditImageUrl ? "Replace document" : "Attach document"}
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                setForm((f) => ({
+                                  ...f,
+                                  supplierCreditImageUrl: evt.target?.result as string,
+                                }));
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {form.supplierCreditImageUrl &&
+                        (form.supplierCreditImageUrl.startsWith("data:application/pdf") ? (
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={form.supplierCreditImageUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                            >
+                              <FileSpreadsheet className="h-4 w-4" /> View PDF
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => ({ ...f, supplierCreditImageUrl: "" }))
+                              }
+                              className="text-xs text-rose-600 hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={form.supplierCreditImageUrl}
+                              alt="Credit Note"
+                              className="h-20 w-auto rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm((f) => ({ ...f, supplierCreditImageUrl: "" }))
+                              }
+                              className="text-xs text-rose-600 hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </Field>
+                )}
+                <Field label="Notes">
+                  <Textarea
+                    value={form.notes}
+                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                    placeholder="Query details, credit status, any relevant info…"
+                    rows={3}
+                  />
+                </Field>
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={isMutating}>
+
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setModalOpen(false)}
+              disabled={isMutating}
+            >
               Cancel
             </Button>
-            <Button onClick={save} disabled={!form.refNumber.trim() || isMutating}>
+            <Button onClick={save} disabled={isMutating}>
               {isMutating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+                </>
               ) : (
-                <Check className="h-4 w-4" />
+                <>
+                  <Check className="h-4 w-4" /> {editingId ? "Save Changes" : "Add Return"}
+                </>
               )}
-              {isMutating ? "Saving…" : "Save Return"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2173,6 +2331,14 @@ function ReturnsTrackerPage() {
           </div>
         </div>
       )}
+
+      {/* Toast notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 rounded-xl bg-slate-900 text-white px-4 py-3 shadow-2xl text-sm font-medium pointer-events-none">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+          {toastMsg}
+        </div>
+      )}
     </div>
   );
 }
@@ -2219,14 +2385,10 @@ function StatCard({
 }) {
   const animated = useCountUp(value);
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className={cn("h-1.5 w-1.5 rounded-full flex-shrink-0", dot)} />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          {label}
-        </span>
-      </div>
-      <span className={cn("text-2xl font-bold tracking-tight", color)}>{animated}</span>
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow">
+      <p className="text-[11px] text-slate-500 font-medium mb-1.5 truncate">{label}</p>
+      <p className={cn("text-2xl font-bold tabular-nums tracking-tight", color)}>{animated}</p>
+      <div className={cn("h-0.5 w-6 rounded-full mt-2 opacity-60", dot)} />
     </div>
   );
 }
@@ -2288,9 +2450,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-        {label}
-      </label>
+      <label className="block text-xs font-medium text-slate-600 mb-1.5">{label}</label>
       {children}
     </div>
   );
