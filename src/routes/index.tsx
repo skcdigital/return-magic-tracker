@@ -738,13 +738,12 @@ function ReturnsTrackerPage() {
   const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  useEffect(() => {
-    if (!toastMsg) return;
-    const t = setTimeout(() => setToastMsg(null), 3500);
-    return () => clearTimeout(t);
-  }, [toastMsg]);
+  function showToast(msg: string, type: "success" | "error" = "success") {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  }
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) => fetchCreate({ data: entry }),
@@ -753,10 +752,12 @@ function ReturnsTrackerPage() {
       setModalOpen(false);
       setSaveError(null);
       setSubmitAttempted(false);
-      setToastMsg("Return added successfully");
+      showToast("Return added successfully");
     },
     onError: (err) => {
-      setSaveError(err instanceof Error ? err.message : "Failed to save — please try again.");
+      const msg = err instanceof Error ? err.message : "Failed to save — please try again.";
+      setSaveError(msg);
+      showToast(msg, "error");
     },
   });
 
@@ -767,10 +768,23 @@ function ReturnsTrackerPage() {
       setModalOpen(false);
       setSaveError(null);
       setSubmitAttempted(false);
-      setToastMsg("Changes saved successfully");
+      showToast("Changes saved successfully");
     },
     onError: (err) => {
-      setSaveError(err instanceof Error ? err.message : "Failed to save — please try again.");
+      const msg = err instanceof Error ? err.message : "Failed to save — please try again.";
+      setSaveError(msg);
+      showToast(msg, "error");
+    },
+  });
+
+  const quickStatusMutation = useMutation({
+    mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: entry }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["returns"] });
+      showToast("Status updated");
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to update status", "error");
     },
   });
 
@@ -779,6 +793,10 @@ function ReturnsTrackerPage() {
       fetchUpdate({ data: { ...entry, status: "credit_processed" } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
+      showToast("Moved to Credited");
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to update", "error");
     },
   });
 
@@ -786,6 +804,10 @@ function ReturnsTrackerPage() {
     mutationFn: (entry: ReturnEntry) => fetchUpdate({ data: { ...entry, status: "completed" } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
+      showToast("Restored to Active");
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to restore", "error");
     },
   });
 
@@ -793,6 +815,10 @@ function ReturnsTrackerPage() {
     mutationFn: (id: string) => fetchDelete({ data: { id } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
+      showToast("Entry deleted");
+    },
+    onError: (err) => {
+      showToast(err instanceof Error ? err.message : "Failed to delete", "error");
     },
   });
 
@@ -1626,8 +1652,44 @@ function ReturnsTrackerPage() {
                       <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>
                         {r.unitLocation || "—"}
                       </td>
-                      <td className="px-3.5 py-3">
-                        <StatusBadge status={r.status} />
+                      <td className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              title="Click to change status"
+                              className="hover:opacity-75 transition-opacity cursor-pointer"
+                            >
+                              <StatusBadge status={r.status} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-1.5" align="start">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2 pt-1 pb-2">
+                              Change Status
+                            </p>
+                            {(Object.keys(STATUS_META) as Status[]).map((s) => {
+                              const Icon = STATUS_META[s].icon;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() =>
+                                    quickStatusMutation.mutate({ ...r, status: s })
+                                  }
+                                  disabled={quickStatusMutation.isPending}
+                                  className={cn(
+                                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors hover:bg-slate-100 disabled:opacity-50",
+                                    r.status === s && "font-semibold bg-slate-50",
+                                  )}
+                                >
+                                  <Icon className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                                  {STATUS_META[s].label}
+                                  {r.status === s && (
+                                    <Check className="h-3 w-3 ml-auto text-slate-400" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </PopoverContent>
+                        </Popover>
                       </td>
                       <td className="px-3.5 py-3 text-xs">
                         {r.creditStatus === "supplier_credit" ? (
@@ -2333,10 +2395,19 @@ function ReturnsTrackerPage() {
       )}
 
       {/* Toast notification */}
-      {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 rounded-xl bg-slate-900 text-white px-4 py-3 shadow-2xl text-sm font-medium pointer-events-none">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-          {toastMsg}
+      {toast && (
+        <div
+          className={cn(
+            "fixed bottom-6 right-6 z-[60] flex items-center gap-2.5 rounded-xl px-4 py-3 shadow-2xl text-sm font-medium pointer-events-none",
+            toast.type === "success" ? "bg-slate-900 text-white" : "bg-rose-600 text-white",
+          )}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-white flex-shrink-0" />
+          )}
+          <span className="max-w-xs">{toast.msg}</span>
         </div>
       )}
     </div>

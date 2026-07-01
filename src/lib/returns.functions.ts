@@ -160,14 +160,12 @@ export const updateReturn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const supabase = getClient();
     const { id, ...rest } = data;
-    const { data: updated, error } = await supabase
+    const { error } = await supabase
       .from("return_entries")
       .update(entryToDb(rest))
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
     if (error) throw new Error(error.message);
-    return { entry: dbToEntry(updated!) };
+    return { success: true as const };
   });
 
 const deleteSchema = z.object({ id: z.string().uuid() });

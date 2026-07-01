@@ -21,15 +21,19 @@ export type Database = {
           credit_note_number: string | null
           credit_status: string
           date: string
+          grs_rfc_grn_image_url: string | null
           id: string
           job_number: string | null
           notes: string | null
           product_type: string
           ref_number: string
           ref_type: string
+          requested_credit_amount: string | null
           serial_number: string | null
           status: string
           store_name: string | null
+          supplier_credit_amount: string | null
+          supplier_credit_image_url: string | null
           unit_location: string | null
         }
         Insert: {
@@ -38,15 +42,19 @@ export type Database = {
           credit_note_number?: string | null
           credit_status?: string
           date: string
+          grs_rfc_grn_image_url?: string | null
           id?: string
           job_number?: string | null
           notes?: string | null
           product_type?: string
           ref_number: string
           ref_type: string
+          requested_credit_amount?: string | null
           serial_number?: string | null
           status?: string
           store_name?: string | null
+          supplier_credit_amount?: string | null
+          supplier_credit_image_url?: string | null
           unit_location?: string | null
         }
         Update: {
@@ -55,15 +63,19 @@ export type Database = {
           credit_note_number?: string | null
           credit_status?: string
           date?: string
+          grs_rfc_grn_image_url?: string | null
           id?: string
           job_number?: string | null
           notes?: string | null
           product_type?: string
           ref_number?: string
           ref_type?: string
+          requested_credit_amount?: string | null
           serial_number?: string | null
           status?: string
           store_name?: string | null
+          supplier_credit_amount?: string | null
+          supplier_credit_image_url?: string | null
           unit_location?: string | null
         }
         Relationships: []
