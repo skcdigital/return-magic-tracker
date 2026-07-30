@@ -87,11 +87,12 @@ import {
   type ProductType,
   type CreditStatus,
 } from "@/lib/returns.functions";
+import { SignOutButton } from "@/components/auth-gate";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Returns Tracker — Omni Technical Solutions" },
+      { title: "Returns Tracker — SKC Digital" },
       {
         name: "description",
         content:
@@ -214,7 +215,7 @@ function BundleCell({ value }: { value: Bundle }) {
     );
   if (value === "none")
     return (
-      <span className="inline-flex items-center gap-1 text-slate-700 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 text-slate-200 text-xs font-semibold">
         <X className="h-3.5 w-3.5" /> None
       </span>
     );
@@ -285,7 +286,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
             <div>
               <h1 className="text-[18px] font-semibold tracking-tight">Returns Tracker</h1>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Omni Technical Solutions · RFC / GRS / GRN retail credit returns
+                SKC Digital · RFC / GRS / GRN retail credit returns
               </p>
             </div>
           </div>
@@ -297,7 +298,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total Returns", value: data.length, cls: "text-slate-800" },
+            { label: "Total Returns", value: data.length, cls: "text-slate-100" },
             {
               label: "Completed",
               value: data.filter((d) => d.status === "completed" || d.status === "credit_processed")
@@ -437,7 +438,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                       ) : r.creditStatus === "no_physical_unit" ? (
                         <span className="font-semibold text-rose-700">No physical unit</span>
                       ) : (
-                        <span className="font-semibold text-slate-700">Unit on hand</span>
+                        <span className="font-semibold text-slate-200">Unit on hand</span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
@@ -460,7 +461,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-4 text-center">
-          Read-only view · Omni Technical Solutions
+          Read-only view · SKC Digital
         </p>
       </div>
 
@@ -476,7 +477,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
           >
             <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-[#20282f]/10 text-white border border-white/20">
                   {viewEntry.refType}
                 </span>
                 <div>
@@ -493,7 +494,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                 <StatusBadge status={viewEntry.status} />
                 <button
                   onClick={() => setViewEntry(null)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+                  className="p-1.5 hover:bg-[#20282f]/10 rounded-lg transition-colors text-white/60 hover:text-white"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -529,7 +530,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                       ) : viewEntry.creditStatus === "no_physical_unit" ? (
                         <span className="text-rose-700 font-semibold">No Physical Unit</span>
                       ) : (
-                        <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                        <span className="text-slate-200 font-semibold">Unit on Hand</span>
                       )
                     }
                   />
@@ -1030,7 +1031,7 @@ function ReturnsTrackerPage() {
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
     XLSX.utils.book_append_sheet(wb, ws, "Returns");
 
-    XLSX.writeFile(wb, `returns-omni-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    XLSX.writeFile(wb, `returns-skc-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
   }
 
   function copyReadOnlyLink() {
@@ -1059,24 +1060,24 @@ function ReturnsTrackerPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Sticky white header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-40 bg-[#20282f] border-b border-white/10">
         <div className="mx-auto max-w-[1400px] px-6 h-14 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <PackageOpen className="h-4 w-4 text-white" />
+              <PackageOpen className="h-4 w-4 text-primary-foreground" />
             </div>
             <div>
-              <span className="font-semibold text-sm text-slate-900">Returns Tracker</span>
+              <span className="font-semibold text-sm text-white">Returns Tracker</span>
               <span className="hidden sm:inline text-slate-400 text-sm mx-2">·</span>
-              <span className="hidden sm:inline text-xs text-slate-500">
-                Omni Technical Solutions
+              <span className="hidden sm:inline text-xs text-slate-400">
+                SKC Digital
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={copyReadOnlyLink}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-3 py-1.5 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white hover:bg-[#232e36] rounded-md px-3 py-1.5 transition-colors"
             >
               {copyToast ? (
                 <>
@@ -1091,16 +1092,18 @@ function ReturnsTrackerPage() {
             <button
               onClick={exportExcel}
               disabled={data.length === 0}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md px-3 py-1.5 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white hover:bg-[#232e36] rounded-md px-3 py-1.5 transition-colors disabled:opacity-40"
             >
               <FileSpreadsheet className="h-3.5 w-3.5" /> Export
             </button>
             <button
               onClick={openAdd}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-white hover:bg-primary/90 rounded-md px-4 py-1.5 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-1.5 transition-colors"
             >
               <Plus className="h-3.5 w-3.5" /> Add Return
             </button>
+            <div className="w-px h-5 bg-white/10 mx-1" />
+            <SignOutButton />
           </div>
         </div>
       </header>
@@ -1111,8 +1114,8 @@ function ReturnsTrackerPage() {
           <StatCard
             label="Total Returns"
             value={stats.total}
-            color="text-slate-900"
-            dot="bg-slate-400"
+            color="text-white"
+            dot="bg-slate-500"
           />
           <StatCard
             label="Active"
@@ -1143,13 +1146,13 @@ function ReturnsTrackerPage() {
 
         {/* Financial banner */}
         {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm p-4">
             <div className="flex flex-wrap items-center gap-8">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
                   Total Requested
                 </p>
-                <p className="text-lg font-bold text-slate-900">
+                <p className="text-lg font-bold text-white">
                   R{" "}
                   {stats.totalRequestedCredit.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}
                 </p>
@@ -1192,11 +1195,11 @@ function ReturnsTrackerPage() {
         )}
 
         {/* Analytics overview */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-slate-400" />
-              <h2 className="text-sm font-semibold text-slate-700">Analytics</h2>
+              <h2 className="text-sm font-semibold text-slate-200">Analytics</h2>
             </div>
             <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
@@ -1211,10 +1214,10 @@ function ReturnsTrackerPage() {
               {(["RFC", "GRS", "GRN"] as const).map((t) => (
                 <div key={t} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-semibold text-slate-600">{t}</span>
-                    <span className="text-xs font-bold text-slate-900">{stats.byType[t]}</span>
+                    <span className="text-xs font-semibold text-slate-300">{t}</span>
+                    <span className="text-xs font-bold text-white">{stats.byType[t]}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[#232e36] overflow-hidden">
                     <div
                       className="h-full rounded-full bg-slate-800 transition-all duration-700"
                       style={{
@@ -1245,10 +1248,10 @@ function ReturnsTrackerPage() {
                 return (
                   <div key={k} className="mb-2 last:mb-0">
                     <div className="flex justify-between mb-0.5">
-                      <span className="text-xs text-slate-500">{label}</span>
-                      <span className="text-xs font-bold text-slate-800">{count}</span>
+                      <span className="text-xs text-slate-400">{label}</span>
+                      <span className="text-xs font-bold text-slate-100">{count}</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-[#232e36] overflow-hidden">
                       <div
                         className={cn("h-full rounded-full transition-all duration-700", color)}
                         style={{
@@ -1272,10 +1275,10 @@ function ReturnsTrackerPage() {
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-3 last:mb-0">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-semibold text-slate-600">{label}</span>
-                    <span className="text-xs font-bold text-slate-900">{val}</span>
+                    <span className="text-xs font-semibold text-slate-300">{label}</span>
+                    <span className="text-xs font-bold text-white">{val}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[#232e36] overflow-hidden">
                     <div
                       className={cn("h-full rounded-full transition-all duration-700", color)}
                       style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }}
@@ -1291,16 +1294,16 @@ function ReturnsTrackerPage() {
               </p>
               {[
                 { label: "Supplier Credit", val: stats.supplierCredit, color: "bg-emerald-500" },
-                { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-400" },
+                { label: "Unit on Hand", val: stats.unitOnHand, color: "bg-slate-500" },
                 { label: "No Physical Unit", val: stats.noPhysicalUnit, color: "bg-rose-400" },
                 { label: "Credited ✓", val: stats.creditProcessed, color: "bg-violet-500" },
               ].map(({ label, val, color }) => (
                 <div key={label} className="mb-2 last:mb-0">
                   <div className="flex justify-between mb-0.5">
-                    <span className="text-xs text-slate-500">{label}</span>
-                    <span className="text-xs font-bold text-slate-800">{val}</span>
+                    <span className="text-xs text-slate-400">{label}</span>
+                    <span className="text-xs font-bold text-slate-100">{val}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-[#232e36] overflow-hidden">
                     <div
                       className={cn("h-full rounded-full transition-all duration-700", color)}
                       style={{ width: stats.total ? `${(val / stats.total) * 100}%` : "0%" }}
@@ -1315,14 +1318,14 @@ function ReturnsTrackerPage() {
         {/* ── Tabs + Filters row ── */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-[#232e36] rounded-lg p-1">
             <button
               onClick={() => setActiveTab("active")}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 activeTab === "active"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900",
+                  ? "bg-[#20282f] text-white shadow-sm"
+                  : "text-slate-300 hover:text-white",
               )}
             >
               Active
@@ -1331,7 +1334,7 @@ function ReturnsTrackerPage() {
                   "text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
                   activeTab === "active"
                     ? "bg-primary/10 text-primary"
-                    : "bg-slate-200 text-slate-500",
+                    : "bg-[#2a343c] text-slate-400",
                 )}
               >
                 {activeData.length}
@@ -1342,8 +1345,8 @@ function ReturnsTrackerPage() {
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 activeTab === "credited"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900",
+                  ? "bg-[#20282f] text-white shadow-sm"
+                  : "text-slate-300 hover:text-white",
               )}
             >
               Credited
@@ -1352,7 +1355,7 @@ function ReturnsTrackerPage() {
                   "text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
                   activeTab === "credited"
                     ? "bg-violet-100 text-violet-600"
-                    : "bg-slate-200 text-slate-500",
+                    : "bg-[#2a343c] text-slate-400",
                 )}
               >
                 {creditedData.length}
@@ -1360,23 +1363,23 @@ function ReturnsTrackerPage() {
             </button>
           </div>
           {/* Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-[#20282f] border border-white/10 rounded-lg px-3 py-2 shadow-sm">
             <Search className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search ref, job no., serial, store…"
-              className="flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-700"
+              className="flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400 text-slate-200"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-200">
                 <X className="h-3 w-3" />
               </button>
             )}
           </div>
           {activeTab === "active" && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+              <SelectTrigger className="w-[140px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -1391,7 +1394,7 @@ function ReturnsTrackerPage() {
             </Select>
           )}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[110px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+            <SelectTrigger className="w-[110px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
@@ -1402,7 +1405,7 @@ function ReturnsTrackerPage() {
             </SelectContent>
           </Select>
           <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-[160px] h-9 bg-white border-slate-200 text-slate-700 text-xs rounded-lg shadow-sm">
+            <SelectTrigger className="w-[160px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
               <SelectValue placeholder="All stores" />
             </SelectTrigger>
             <SelectContent>
@@ -1414,20 +1417,20 @@ function ReturnsTrackerPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-2 shadow-sm">
+          <div className="flex items-center gap-1.5 bg-[#20282f] border border-white/10 rounded-lg px-2.5 py-2 shadow-sm">
             <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="text-xs bg-transparent outline-none text-slate-600"
+              className="text-xs bg-transparent outline-none text-slate-300"
             />
             <span className="text-slate-300">–</span>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="text-xs bg-transparent outline-none text-slate-600"
+              className="text-xs bg-transparent outline-none text-slate-300"
             />
             {(dateFrom || dateTo) && (
               <button
@@ -1436,18 +1439,18 @@ function ReturnsTrackerPage() {
                   setDateTo("");
                 }}
               >
-                <X className="h-3 w-3 text-slate-400 hover:text-slate-700" />
+                <X className="h-3 w-3 text-slate-400 hover:text-slate-200" />
               </button>
             )}
           </div>
         </div>
 
         {/* ── Table ── */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[1100px]">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b border-white/10 bg-[#1c242a]">
                   <Th onClick={() => toggleSort("refType")}>Type</Th>
                   <Th onClick={() => toggleSort("refNumber")}>Reference</Th>
                   <Th onClick={() => toggleSort("jobNumber")}>Job No.</Th>
@@ -1478,7 +1481,7 @@ function ReturnsTrackerPage() {
                     <td colSpan={13}>
                       <div className="py-14 text-center">
                         <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" />
-                        <p className="text-sm font-medium text-slate-600">Failed to load</p>
+                        <p className="text-sm font-medium text-slate-300">Failed to load</p>
                       </div>
                     </td>
                   </tr>
@@ -1486,8 +1489,8 @@ function ReturnsTrackerPage() {
                   <tr>
                     <td colSpan={13}>
                       <div className="py-16 text-center">
-                        <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-200" />
-                        <p className="text-sm font-semibold text-slate-500 mb-1">
+                        <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                        <p className="text-sm font-semibold text-slate-400 mb-1">
                           {tableSource.length === 0
                             ? activeTab === "credited"
                               ? "No credited returns yet"
@@ -1508,7 +1511,7 @@ function ReturnsTrackerPage() {
                   filtered.map((r) => (
                     <tr
                       key={r.id}
-                      className="group border-b border-slate-100 last:border-0 hover:bg-slate-50/80 transition-colors cursor-pointer"
+                      className="group border-b border-white/10 last:border-0 hover:bg-[#1c242a]/80 transition-colors cursor-pointer"
                       onClick={() => setViewEntry(r)}
                     >
                       <td className="px-3.5 py-3">
@@ -1517,17 +1520,17 @@ function ReturnsTrackerPage() {
                         </span>
                       </td>
                       <td className="px-3.5 py-3">
-                        <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-slate-200 bg-[#232e36] px-2 py-0.5 rounded">
                           {r.refNumber || "—"}
                         </span>
                       </td>
-                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-400">
                         {r.jobNumber || "—"}
                       </td>
-                      <td className="px-3.5 py-3 font-mono text-xs text-slate-500">
+                      <td className="px-3.5 py-3 font-mono text-xs text-slate-400">
                         {r.serialNumber || "—"}
                       </td>
-                      <td className="px-3.5 py-3 text-xs font-semibold text-slate-800">
+                      <td className="px-3.5 py-3 text-xs font-semibold text-slate-100">
                         {r.storeName || "—"}
                       </td>
                       <td className="px-3.5 py-3">
@@ -1536,7 +1539,7 @@ function ReturnsTrackerPage() {
                       <td className="px-3.5 py-3">
                         <BundleCell value={r.bundle} />
                       </td>
-                      <td className="px-3.5 py-3 text-xs text-slate-500" title={r.unitLocation}>
+                      <td className="px-3.5 py-3 text-xs text-slate-400" title={r.unitLocation}>
                         {r.unitLocation || "—"}
                       </td>
                       <td className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
@@ -1563,11 +1566,11 @@ function ReturnsTrackerPage() {
                                   }
                                   disabled={quickStatusMutation.isPending}
                                   className={cn(
-                                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors hover:bg-slate-100 disabled:opacity-50",
-                                    r.status === s && "font-semibold bg-slate-50",
+                                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded-md transition-colors hover:bg-[#232e36] disabled:opacity-50",
+                                    r.status === s && "font-semibold bg-[#1c242a]",
                                   )}
                                 >
-                                  <Icon className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                                  <Icon className="h-3 w-3 text-slate-400 flex-shrink-0" />
                                   {STATUS_META[s].label}
                                   {r.status === s && (
                                     <Check className="h-3 w-3 ml-auto text-slate-400" />
@@ -1591,10 +1594,10 @@ function ReturnsTrackerPage() {
                         ) : r.creditStatus === "no_physical_unit" ? (
                           <span className="text-[11px] font-semibold text-rose-600">No unit</span>
                         ) : (
-                          <span className="text-[11px] text-slate-500">On hand</span>
+                          <span className="text-[11px] text-slate-400">On hand</span>
                         )}
                       </td>
-                      <td className="px-3.5 py-3 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-xs text-slate-400 whitespace-nowrap">
                         {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                       </td>
                       <td
@@ -1624,7 +1627,7 @@ function ReturnsTrackerPage() {
                               title="Restore to Active"
                               onClick={() => restoreActiveMutation.mutate(r)}
                               disabled={restoreActiveMutation.isPending}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-[#232e36] hover:bg-[#2a343c] text-slate-300 transition-colors"
                             >
                               ↩ Restore
                             </button>
@@ -1644,10 +1647,10 @@ function ReturnsTrackerPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between">
+            <div className="px-4 py-2.5 border-t border-white/10 bg-[#1c242a]/80 flex items-center justify-between">
               <p className="text-[11px] text-slate-400">
-                Showing <strong className="text-slate-600">{filtered.length}</strong> of{" "}
-                <strong className="text-slate-600">{tableSource.length}</strong> entries
+                Showing <strong className="text-slate-300">{filtered.length}</strong> of{" "}
+                <strong className="text-slate-300">{tableSource.length}</strong> entries
               </p>
               <p className="text-[11px] text-slate-400 hidden sm:block">
                 Hover a row to reveal actions
@@ -1657,7 +1660,7 @@ function ReturnsTrackerPage() {
         </div>
 
         <p className="text-[11px] text-slate-400 text-center pb-2">
-          Omni Technical Solutions · Returns Tracker · {new Date().getFullYear()}
+          SKC Digital · Returns Tracker · {new Date().getFullYear()}
         </p>
       </main>
       {/* Add / Edit Modal */}
@@ -1684,7 +1687,7 @@ function ReturnsTrackerPage() {
           <div className="space-y-6 py-1">
             {/* Section: Reference Details */}
             <div>
-              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">
                 Reference Details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1764,7 +1767,7 @@ function ReturnsTrackerPage() {
 
             {/* Section: Return Details */}
             <div>
-              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">
                 Return Details
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1883,7 +1886,7 @@ function ReturnsTrackerPage() {
 
             {/* Section: Credit Information */}
             <div>
-              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">
                 Credit Information
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1948,7 +1951,7 @@ function ReturnsTrackerPage() {
 
             {/* Section: Documents & Notes */}
             <div>
-              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+              <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">
                 Notes
               </h3>
               <div className="space-y-4">
@@ -2000,7 +2003,7 @@ function ReturnsTrackerPage() {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-slate-900 to-slate-800 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-white/10 text-white border border-white/20">
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-[#20282f]/10 text-white border border-white/20">
                   {viewEntry.refType}
                 </span>
                 <div>
@@ -2017,7 +2020,7 @@ function ReturnsTrackerPage() {
                 <StatusBadge status={viewEntry.status} />
                 <button
                   onClick={() => setViewEntry(null)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+                  className="p-1.5 hover:bg-[#20282f]/10 rounded-lg transition-colors text-white/60 hover:text-white"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -2057,7 +2060,7 @@ function ReturnsTrackerPage() {
                       ) : viewEntry.creditStatus === "no_physical_unit" ? (
                         <span className="text-rose-700 font-semibold">No Physical Unit</span>
                       ) : (
-                        <span className="text-slate-700 font-semibold">Unit on Hand</span>
+                        <span className="text-slate-200 font-semibold">Unit on Hand</span>
                       )
                     }
                   />
@@ -2165,7 +2168,7 @@ function AnimatedStatCard({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border-l-4 border border-slate-200 p-4 shadow-sm",
+        "bg-[#20282f] rounded-xl border-l-4 border border-white/10 p-4 shadow-sm",
         accent.replace("border-", "border-l-"),
       )}
     >
@@ -2190,8 +2193,8 @@ function StatCard({
 }) {
   const animated = useCountUp(value);
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow">
-      <p className="text-[11px] text-slate-500 font-medium mb-1.5 truncate">{label}</p>
+    <div className="bg-[#20282f] rounded-xl border border-white/10 px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow">
+      <p className="text-[11px] text-slate-400 font-medium mb-1.5 truncate">{label}</p>
       <p className={cn("text-2xl font-bold tabular-nums tracking-tight", color)}>{animated}</p>
       <div className={cn("h-0.5 w-6 rounded-full mt-2 opacity-60", dot)} />
     </div>
@@ -2202,9 +2205,9 @@ function Th({ children, onClick }: { children: React.ReactNode; onClick?: () => 
   return (
     <th
       className={cn(
-        "px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 whitespace-nowrap text-left",
+        "px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 bg-[#1c242a] whitespace-nowrap text-left",
         onClick &&
-          "cursor-pointer hover:text-slate-800 hover:bg-slate-100 transition-colors select-none",
+          "cursor-pointer hover:text-slate-100 hover:bg-[#232e36] transition-colors select-none",
       )}
       onClick={onClick}
     >
@@ -2236,7 +2239,7 @@ function IconBtn({
         "p-1.5 rounded-md transition-colors",
         danger
           ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-          : "text-slate-400 hover:text-slate-700 hover:bg-slate-100",
+          : "text-slate-400 hover:text-slate-200 hover:bg-[#232e36]",
       )}
     >
       {children}
@@ -2255,7 +2258,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-600 mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-slate-300 mb-1.5">{label}</label>
       {children}
     </div>
   );

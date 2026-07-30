@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const RefTypeSchema = z.enum(["RFC", "GRS", "GRN"]);
 const StatusSchema = z.enum(["completed", "started", "pending", "missing", "incomplete", "in_progress", "credit_processed"]);
@@ -32,15 +32,6 @@ export interface ReturnEntry {
   requestedCreditAmount: string;
   supplierCreditAmount: string;
   createdAt: string;
-}
-
-function getClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error("Missing Supabase env vars");
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
 }
 
 function dbToEntry(row: Record<string, unknown>): ReturnEntry {
@@ -85,15 +76,16 @@ function entryToDb(entry: Partial<ReturnEntry>) {
   } as any;
 }
 
-export const listReturns = createServerFn({ method: "GET" }).handler(async () => {
-  const supabase = getClient();
-  const { data, error } = await supabase
-    .from("return_entries")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return { entries: (data ?? []).map(dbToEntry) };
-});
+export const listReturns = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("return_entries")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { entries: (data ?? []).map(dbToEntry) };
+  });
 
 const createSchema = z.object({
   refType: RefTypeSchema,
@@ -114,10 +106,10 @@ const createSchema = z.object({
 });
 
 export const createReturn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createSchema.parse(input))
-  .handler(async ({ data }) => {
-    const supabase = getClient();
-    const { data: inserted, error } = await supabase
+  .handler(async ({ data, context }) => {
+    const { data: inserted, error } = await context.supabase
       .from("return_entries")
       .insert(entryToDb(data))
       .select()
@@ -146,11 +138,11 @@ const updateSchema = z.object({
 });
 
 export const updateReturn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => updateSchema.parse(input))
-  .handler(async ({ data }) => {
-    const supabase = getClient();
+  .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const { error } = await supabase
+    const { error } = await context.supabase
       .from("return_entries")
       .update(entryToDb(rest))
       .eq("id", id);
@@ -161,10 +153,10 @@ export const updateReturn = createServerFn({ method: "POST" })
 const deleteSchema = z.object({ id: z.string().uuid() });
 
 export const deleteReturn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => deleteSchema.parse(input))
-  .handler(async ({ data }) => {
-    const supabase = getClient();
-    const { error } = await supabase.from("return_entries").delete().eq("id", data.id);
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("return_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
   });
