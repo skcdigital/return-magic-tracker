@@ -80,6 +80,39 @@ export type Database = {
         }
         Relationships: []
       }
+      return_entries_audit: {
+        Row: {
+          id: string
+          entry_id: string
+          action: string
+          changed_by: string | null
+          changed_by_email: string | null
+          old_data: Json | null
+          new_data: Json | null
+          changed_at: string
+        }
+        Insert: {
+          id?: string
+          entry_id: string
+          action: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          old_data?: Json | null
+          new_data?: Json | null
+          changed_at?: string
+        }
+        Update: {
+          id?: string
+          entry_id?: string
+          action?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          old_data?: Json | null
+          new_data?: Json | null
+          changed_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

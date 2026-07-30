@@ -23,6 +23,15 @@ function useCountUp(target: number, duration = 900) {
   return value;
 }
 import { format, isWithinInterval, parseISO } from "date-fns";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
@@ -51,6 +60,9 @@ import {
   DollarSign,
   Activity,
   CreditCard,
+  Paperclip,
+  History,
+  ChevronDown,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -80,6 +92,8 @@ import {
   createReturn,
   updateReturn,
   deleteReturn,
+  listReturnAudit,
+  type AuditEntry,
   type ReturnEntry,
   type RefType,
   type Status,
@@ -88,6 +102,7 @@ import {
   type CreditStatus,
 } from "@/lib/returns.functions";
 import { SignOutButton } from "@/components/auth-gate";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -135,6 +150,8 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   notes: "",
   requestedCreditAmount: "",
   supplierCreditAmount: "",
+  grsRfcGrnImageUrl: "",
+  supplierCreditImageUrl: "",
 });
 
 const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: string }> = {
@@ -819,6 +836,44 @@ function ReturnsTrackerPage() {
     };
   }, [data]);
 
+  const weeklyTrend = useMemo(() => {
+    const WEEKS = 8;
+    const startOfWeek = (d: Date) => {
+      const copy = new Date(d);
+      const day = copy.getDay();
+      const diff = copy.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
+      copy.setDate(diff);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    };
+    const parseAmt = (v: string) => {
+      const n = parseFloat((v || "").replace(/[^0-9.]/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
+    const now = new Date();
+    const buckets: { weekStart: Date; label: string; count: number; credit: number }[] = [];
+    for (let i = WEEKS - 1; i >= 0; i--) {
+      const ws = startOfWeek(new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000));
+      buckets.push({
+        weekStart: ws,
+        label: format(ws, "dd MMM"),
+        count: 0,
+        credit: 0,
+      });
+    }
+    for (const entry of data) {
+      if (!entry.date) continue;
+      const entryDate = new Date(entry.date + "T00:00:00");
+      const ws = startOfWeek(entryDate).getTime();
+      const bucket = buckets.find((b) => b.weekStart.getTime() === ws);
+      if (bucket) {
+        bucket.count += 1;
+        bucket.credit += parseAmt(entry.supplierCreditAmount);
+      }
+    }
+    return buckets.map(({ label, count, credit }) => ({ label, count, credit }));
+  }, [data]);
+
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortDir((s) => (s === 1 ? -1 : 1));
     else {
@@ -853,6 +908,8 @@ function ReturnsTrackerPage() {
       notes: r.notes,
       requestedCreditAmount: r.requestedCreditAmount ?? "",
       supplierCreditAmount: r.supplierCreditAmount ?? "",
+      grsRfcGrnImageUrl: r.grsRfcGrnImageUrl ?? "",
+      supplierCreditImageUrl: r.supplierCreditImageUrl ?? "",
     });
     setSaveError(null);
     setSubmitAttempted(false);
@@ -1378,6 +1435,65 @@ function ReturnsTrackerPage() {
           </div>
         </div>
 
+        {/* Trend chart */}
+        <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-slate-400" />
+              <h2 className="text-sm font-semibold text-slate-200">
+                Weekly Trend
+              </h2>
+            </div>
+            <span className="text-[11px] text-slate-400">Last 8 weeks</span>
+          </div>
+          <div className="p-5 pl-1 h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={weeklyTrend} margin={{ top: 5, right: 20, left: 5, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="trendCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  axisLine={{ stroke: "#ffffff1a" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={28}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    background: "#1c242a",
+                    border: "1px solid #ffffff1a",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "#e2e8f0" }}
+                  formatter={(value: number, name: string) => [
+                    name === "credit" ? `R ${value.toLocaleString("en-ZA")}` : value,
+                    name === "credit" ? "Supplier credit" : "Returns",
+                  ]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#34d399"
+                  strokeWidth={2}
+                  fill="url(#trendCount)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
         {/* ── Tabs + Filters row ── */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {/* Tabs */}
@@ -1665,6 +1781,12 @@ function ReturnsTrackerPage() {
                           <span>
                             {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
                           </span>
+                          {(r.grsRfcGrnImageUrl || r.supplierCreditImageUrl) && (
+                            <Paperclip
+                              className="h-3 w-3 text-slate-500 flex-shrink-0"
+                              aria-label="Has attachment"
+                            />
+                          )}
                           {(() => {
                             const days = getDaysAging(r);
                             return days !== null && days > AGING_THRESHOLD_DAYS ? (
@@ -2025,9 +2147,21 @@ function ReturnsTrackerPage() {
             {/* Section: Documents & Notes */}
             <div>
               <h3 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 pb-2 border-b border-white/10">
-                Notes
+                Documents &amp; Notes
               </h3>
               <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <AttachmentField
+                    label="RFC/GRS/GRN Document"
+                    value={form.grsRfcGrnImageUrl}
+                    onChange={(url) => setForm((f) => ({ ...f, grsRfcGrnImageUrl: url }))}
+                  />
+                  <AttachmentField
+                    label="Supplier Credit Document"
+                    value={form.supplierCreditImageUrl}
+                    onChange={(url) => setForm((f) => ({ ...f, supplierCreditImageUrl: url }))}
+                  />
+                </div>
                 <Field label="Notes">
                   <Textarea
                     value={form.notes}
@@ -2174,6 +2308,56 @@ function ReturnsTrackerPage() {
                   </p>
                 </div>
               )}
+
+              {/* Attachments */}
+              {(viewEntry.grsRfcGrnImageUrl || viewEntry.supplierCreditImageUrl) && (
+                <div className="col-span-2 border-t pt-3 mt-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                    <Paperclip className="h-3 w-3" /> Attachments
+                  </p>
+                  <div className="flex gap-3 flex-wrap">
+                    {viewEntry.grsRfcGrnImageUrl && (
+                      <a
+                        href={viewEntry.grsRfcGrnImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group"
+                      >
+                        <img
+                          src={viewEntry.grsRfcGrnImageUrl}
+                          alt="RFC/GRS/GRN document"
+                          className="h-20 w-20 object-cover rounded-lg border border-white/10 group-hover:opacity-80 transition-opacity"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                          RFC/GRS/GRN
+                        </p>
+                      </a>
+                    )}
+                    {viewEntry.supplierCreditImageUrl && (
+                      <a
+                        href={viewEntry.supplierCreditImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group"
+                      >
+                        <img
+                          src={viewEntry.supplierCreditImageUrl}
+                          alt="Supplier credit document"
+                          className="h-20 w-20 object-cover rounded-lg border border-white/10 group-hover:opacity-80 transition-opacity"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                          Supplier Credit
+                        </p>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* History */}
+              <div className="col-span-2 border-t pt-3 mt-1">
+                <HistorySection entryId={viewEntry.id} />
+              </div>
             </div>
 
             {/* Footer actions */}
@@ -2365,5 +2549,174 @@ function DetailRow({
       </p>
       <p className={cn("text-sm text-foreground", mono && "font-mono")}>{value || "—"}</p>
     </div>
+  );
+}
+
+// ── Audit history panel (shown in the detail modal) ──
+const HISTORY_FIELD_LABELS: Record<string, string> = {
+  status: "Status",
+  credit_status: "Credit Status",
+  credit_note_number: "Credit Note No.",
+  requested_credit_amount: "Credit Requested",
+  supplier_credit_amount: "Supplier Credited",
+  store_name: "Store",
+  unit_location: "Unit Location",
+  notes: "Notes",
+  bundle: "Bundle",
+  grs_rfc_grn_image_url: "RFC/GRS/GRN Attachment",
+  supplier_credit_image_url: "Supplier Credit Attachment",
+};
+
+function summarizeAuditChange(entry: AuditEntry): string[] {
+  if (entry.action === "insert") return ["Return created"];
+  if (entry.action === "delete") return ["Return deleted"];
+  if (!entry.oldData || !entry.newData) return ["Updated"];
+  const changes: string[] = [];
+  for (const key of Object.keys(HISTORY_FIELD_LABELS)) {
+    const before = entry.oldData[key];
+    const after = entry.newData[key];
+    if (before !== after) {
+      const label = HISTORY_FIELD_LABELS[key];
+      if (key.endsWith("image_url")) {
+        changes.push(after ? `${label} added` : `${label} removed`);
+      } else {
+        changes.push(`${label}: ${before || "—"} → ${after || "—"}`);
+      }
+    }
+  }
+  return changes.length ? changes : ["Updated"];
+}
+
+function HistorySection({ entryId }: { entryId: string }) {
+  const [open, setOpen] = useState(false);
+  const fetchAudit = useServerFn(listReturnAudit);
+  const { data, isLoading } = useQuery({
+    queryKey: ["return-audit", entryId],
+    queryFn: () => fetchAudit({ data: { entryId } }),
+    enabled: open,
+  });
+
+  const entries = data?.entries ?? [];
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <History className="h-3 w-3" />
+        History
+        <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="mt-2.5 space-y-2.5 max-h-56 overflow-y-auto pr-1">
+          {isLoading && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Loading history…
+            </p>
+          )}
+          {!isLoading && entries.length === 0 && (
+            <p className="text-xs text-muted-foreground">No history recorded yet.</p>
+          )}
+          {entries.map((e) => (
+            <div key={e.id} className="text-xs border-l-2 border-white/10 pl-3 py-0.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-foreground">{e.changedByEmail}</span>
+                <span className="text-muted-foreground">
+                  {format(new Date(e.changedAt), "dd MMM yyyy HH:mm")}
+                </span>
+              </div>
+              <ul className="mt-0.5 text-muted-foreground list-disc list-inside">
+                {summarizeAuditChange(e).map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Attachment upload field (used in the Add/Edit modal) ──
+function AttachmentField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("return-attachments")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("return-attachments").getPublicUrl(path);
+      onChange(data.publicUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <Field label={label}>
+      {value ? (
+        <div className="flex items-center gap-2">
+          <a href={value} target="_blank" rel="noreferrer">
+            <img
+              src={value}
+              alt={label}
+              className="h-14 w-14 object-cover rounded-md border border-white/10"
+            />
+          </a>
+          <Button type="button" variant="outline" size="sm" onClick={() => onChange("")}>
+            <Trash2 className="h-3.5 w-3.5" /> Remove
+          </Button>
+        </div>
+      ) : (
+        <label
+          className={cn(
+            "flex items-center justify-center gap-2 border border-dashed border-white/15 rounded-md h-14 text-xs text-slate-400 transition-colors",
+            uploading
+              ? "opacity-60 cursor-wait"
+              : "cursor-pointer hover:border-white/30 hover:text-slate-300",
+          )}
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Paperclip className="h-4 w-4" />
+          )}
+          {uploading ? "Uploading…" : "Attach image"}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFile}
+            disabled={uploading}
+          />
+        </label>
+      )}
+      {error && <p className="text-[11px] text-red-400 mt-1">{error}</p>}
+    </Field>
   );
 }

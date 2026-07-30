@@ -31,6 +31,8 @@ export interface ReturnEntry {
   notes: string;
   requestedCreditAmount: string;
   supplierCreditAmount: string;
+  grsRfcGrnImageUrl: string;
+  supplierCreditImageUrl: string;
   createdAt: string;
 }
 
@@ -52,6 +54,8 @@ function dbToEntry(row: Record<string, unknown>): ReturnEntry {
     notes: String(row.notes ?? ""),
     requestedCreditAmount: String(row.requested_credit_amount ?? ""),
     supplierCreditAmount: String(row.supplier_credit_amount ?? ""),
+    grsRfcGrnImageUrl: String(row.grs_rfc_grn_image_url ?? ""),
+    supplierCreditImageUrl: String(row.supplier_credit_image_url ?? ""),
     createdAt: String(row.created_at ?? ""),
   };
 }
@@ -73,6 +77,8 @@ function entryToDb(entry: Partial<ReturnEntry>) {
     notes: entry.notes,
     requested_credit_amount: entry.requestedCreditAmount,
     supplier_credit_amount: entry.supplierCreditAmount,
+    grs_rfc_grn_image_url: entry.grsRfcGrnImageUrl || null,
+    supplier_credit_image_url: entry.supplierCreditImageUrl || null,
   } as any;
 }
 
@@ -103,6 +109,8 @@ const createSchema = z.object({
   notes: z.string(),
   requestedCreditAmount: z.string().optional().default(""),
   supplierCreditAmount: z.string().optional().default(""),
+  grsRfcGrnImageUrl: z.string().optional().default(""),
+  supplierCreditImageUrl: z.string().optional().default(""),
 });
 
 export const createReturn = createServerFn({ method: "POST" })
@@ -135,6 +143,8 @@ const updateSchema = z.object({
   notes: z.string(),
   requestedCreditAmount: z.string().optional().default(""),
   supplierCreditAmount: z.string().optional().default(""),
+  grsRfcGrnImageUrl: z.string().optional().default(""),
+  supplierCreditImageUrl: z.string().optional().default(""),
 });
 
 export const updateReturn = createServerFn({ method: "POST" })
@@ -159,4 +169,36 @@ export const deleteReturn = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("return_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
+  });
+
+export interface AuditEntry {
+  id: string;
+  action: "insert" | "update" | "delete";
+  changedByEmail: string;
+  changedAt: string;
+  oldData: Record<string, any> | null;
+  newData: Record<string, any> | null;
+}
+
+const auditSchema = z.object({ entryId: z.string().uuid() });
+
+export const listReturnAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => auditSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("return_entries_audit")
+      .select("*")
+      .eq("entry_id", data.entryId)
+      .order("changed_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const entries: AuditEntry[] = (rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      action: r.action,
+      changedByEmail: r.changed_by_email ?? "Unknown",
+      changedAt: String(r.changed_at),
+      oldData: r.old_data,
+      newData: r.new_data,
+    }));
+    return { entries };
   });
