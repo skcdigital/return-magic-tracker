@@ -175,6 +175,35 @@ const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cls: stri
   },
 };
 
+// ── Aging: returns still open past this many days flag as "aging" ──
+const AGING_THRESHOLD_DAYS = 7;
+const AGING_TERMINAL_STATUSES: Status[] = ["completed", "credit_processed"];
+
+function getDaysAging(entry: { date: string; status: Status }): number | null {
+  if (!entry.date || AGING_TERMINAL_STATUSES.includes(entry.status)) return null;
+  const opened = new Date(entry.date + "T00:00:00");
+  if (isNaN(opened.getTime())) return null;
+  const diffMs = Date.now() - opened.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function isAging(entry: { date: string; status: Status }): boolean {
+  const days = getDaysAging(entry);
+  return days !== null && days > AGING_THRESHOLD_DAYS;
+}
+
+function AgingBadge({ days }: { days: number }) {
+  return (
+    <span
+      title={`Open for ${days} day${days === 1 ? "" : "s"} — past the ${AGING_THRESHOLD_DAYS}-day threshold`}
+      className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/30"
+    >
+      <AlertTriangle className="h-2.5 w-2.5" />
+      {days}d
+    </span>
+  );
+}
+
 function ProductTypeCell({ value }: { value: ProductType }) {
   const config: Record<ProductType, { label: string; color: string }> = {
     laptop: { label: "Laptop", color: "bg-sky-50 text-sky-700 ring-sky-200" },
@@ -616,6 +645,7 @@ function ReturnsTrackerPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [agingOnly, setAgingOnly] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -732,6 +762,7 @@ function ReturnsTrackerPage() {
         if (statusFilter !== "all" && r.status !== statusFilter) return false;
         if (typeFilter !== "all" && r.refType !== typeFilter) return false;
         if (storeFilter !== "all" && r.storeName !== storeFilter) return false;
+        if (agingOnly && !isAging(r)) return false;
         if (dateFrom && r.date && r.date < dateFrom) return false;
         if (dateTo && r.date && r.date > dateTo) return false;
         return true;
@@ -747,6 +778,7 @@ function ReturnsTrackerPage() {
     statusFilter,
     typeFilter,
     storeFilter,
+    agingOnly,
     dateFrom,
     dateTo,
     sortKey,
@@ -767,6 +799,7 @@ function ReturnsTrackerPage() {
       pending: data.filter((d) => d.status === "pending").length,
       incomplete: data.filter((d) => d.status === "incomplete").length,
       missing: data.filter((d) => d.status === "missing").length,
+      aging: data.filter((d) => isAging(d)).length,
       supplierCredit: data.filter((d) => d.creditStatus === "supplier_credit").length,
       unitOnHand: data.filter((d) => d.creditStatus === "unit_on_hand").length,
       noPhysicalUnit: data.filter((d) => d.creditStatus === "no_physical_unit").length,
@@ -1110,7 +1143,7 @@ function ReturnsTrackerPage() {
 
       <main className="mx-auto max-w-[1400px] px-6 py-6 space-y-5 pb-12">
         {/* KPI stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatCard
             label="Total Returns"
             value={stats.total}
@@ -1142,7 +1175,37 @@ function ReturnsTrackerPage() {
             color="text-amber-600"
             dot="bg-amber-500"
           />
+          <button
+            onClick={() => setAgingOnly((v) => !v)}
+            className="text-left"
+            title={`Returns open more than ${AGING_THRESHOLD_DAYS} days — click to ${agingOnly ? "clear" : "apply"} filter`}
+          >
+            <StatCard
+              label={`Aging (>${AGING_THRESHOLD_DAYS}d)`}
+              value={stats.aging}
+              color="text-amber-400"
+              dot="bg-amber-400"
+              highlighted={agingOnly}
+              pulse={stats.aging > 0}
+            />
+          </button>
         </div>
+
+        {agingOnly && (
+          <div className="flex items-center gap-2 -mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>
+              Showing only returns open more than {AGING_THRESHOLD_DAYS} days ({filtered.length} of{" "}
+              {tableSource.length})
+            </span>
+            <button
+              onClick={() => setAgingOnly(false)}
+              className="ml-auto text-amber-300 hover:text-white underline underline-offset-2"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Financial banner */}
         {(stats.totalRequestedCredit > 0 || stats.totalSupplierCredit > 0) && (
@@ -1598,7 +1661,17 @@ function ReturnsTrackerPage() {
                         )}
                       </td>
                       <td className="px-3.5 py-3 text-xs text-slate-400 whitespace-nowrap">
-                        {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                        <div className="flex items-center gap-1.5">
+                          <span>
+                            {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                          </span>
+                          {(() => {
+                            const days = getDaysAging(r);
+                            return days !== null && days > AGING_THRESHOLD_DAYS ? (
+                              <AgingBadge days={days} />
+                            ) : null;
+                          })()}
+                        </div>
                       </td>
                       <td
                         className="px-3.5 py-3 text-xs text-slate-400 max-w-[180px] truncate"
@@ -2185,16 +2258,28 @@ function StatCard({
   value,
   color,
   dot,
+  highlighted,
+  pulse,
 }: {
   label: string;
   value: number;
   color: string;
   dot: string;
+  highlighted?: boolean;
+  pulse?: boolean;
 }) {
   const animated = useCountUp(value);
   return (
-    <div className="bg-[#20282f] rounded-xl border border-white/10 px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow">
-      <p className="text-[11px] text-slate-400 font-medium mb-1.5 truncate">{label}</p>
+    <div
+      className={cn(
+        "bg-[#20282f] rounded-xl border px-4 py-3.5 shadow-sm hover:shadow-md transition-shadow",
+        highlighted ? "border-amber-500/50 ring-1 ring-amber-500/30" : "border-white/10",
+      )}
+    >
+      <p className="text-[11px] text-slate-400 font-medium mb-1.5 truncate flex items-center gap-1.5">
+        {label}
+        {pulse && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />}
+      </p>
       <p className={cn("text-2xl font-bold tabular-nums tracking-tight", color)}>{animated}</p>
       <div className={cn("h-0.5 w-6 rounded-full mt-2 opacity-60", dot)} />
     </div>
