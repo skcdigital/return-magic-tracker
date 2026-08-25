@@ -9,9 +9,41 @@ import {
   CreditCard,
   Check,
   X,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReturnEntry, Status, ProductType, Bundle } from "@/lib/returns.functions";
+
+// ── Attachment helpers: uploads can be images or PDFs ──
+export function isPdfUrl(url: string): boolean {
+  return /\.pdf(\?|$)/i.test(url);
+}
+
+export function AttachmentThumb({
+  url,
+  alt,
+  size = "h-14 w-14",
+}: {
+  url: string;
+  alt: string;
+  size?: string;
+}) {
+  if (isPdfUrl(url)) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#232e36] text-rose-400",
+          size,
+        )}
+        title={alt}
+      >
+        <FileText className="h-5 w-5" />
+        <span className="text-[9px] font-semibold uppercase tracking-wide">PDF</span>
+      </div>
+    );
+  }
+  return <img src={url} alt={alt} className={cn("object-cover rounded-md border border-white/10", size)} />;
+}
 
 // ── Animated counter hook ──
 export function useCountUp(target: number, duration = 900) {
@@ -39,37 +71,37 @@ export const STATUS_META: Record<Status, { label: string; icon: typeof Clock; cl
   completed: {
     label: "Completed",
     icon: CheckCircle2,
-    cls: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
+    cls: "bg-emerald-500/15 text-emerald-400 ring-1 ring-inset ring-emerald-500/30",
   },
   started: {
     label: "Started",
     icon: PlayCircle,
-    cls: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
+    cls: "bg-blue-500/15 text-blue-400 ring-1 ring-inset ring-blue-500/30",
   },
   pending: {
     label: "Pending",
     icon: Clock,
-    cls: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
+    cls: "bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/30",
   },
   missing: {
     label: "Missing",
     icon: AlertTriangle,
-    cls: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200",
+    cls: "bg-rose-500/15 text-rose-400 ring-1 ring-inset ring-rose-500/30",
   },
   incomplete: {
     label: "Incomplete",
     icon: AlertTriangle,
-    cls: "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200",
+    cls: "bg-orange-500/15 text-orange-400 ring-1 ring-inset ring-orange-500/30",
   },
   in_progress: {
     label: "In Progress",
     icon: Activity,
-    cls: "bg-cyan-50 text-cyan-700 ring-1 ring-inset ring-cyan-200",
+    cls: "bg-cyan-500/15 text-cyan-400 ring-1 ring-inset ring-cyan-500/30",
   },
   credit_processed: {
     label: "Credit Processed",
     icon: CreditCard,
-    cls: "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200",
+    cls: "bg-purple-500/15 text-purple-400 ring-1 ring-inset ring-purple-500/30",
   },
 };
 
@@ -104,9 +136,9 @@ export function AgingBadge({ days }: { days: number }) {
 
 export function ProductTypeCell({ value }: { value: ProductType }) {
   const config: Record<ProductType, { label: string; color: string }> = {
-    laptop: { label: "Laptop", color: "bg-sky-50 text-sky-700 ring-sky-200" },
-    printer: { label: "Printer", color: "bg-violet-50 text-violet-700 ring-violet-200" },
-    rma: { label: "RMA", color: "bg-amber-50 text-amber-700 ring-amber-200" },
+    laptop: { label: "Laptop", color: "bg-sky-500/15 text-sky-400 ring-sky-500/30" },
+    printer: { label: "Printer", color: "bg-violet-500/15 text-violet-400 ring-violet-500/30" },
+    rma: { label: "RMA", color: "bg-amber-500/15 text-amber-400 ring-amber-500/30" },
   };
   const { label, color } = config[value] || config.laptop;
   return (
@@ -124,30 +156,30 @@ export function ProductTypeCell({ value }: { value: ProductType }) {
 export function BundleCell({ value }: { value: Bundle }) {
   if (value === "yes")
     return (
-      <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-semibold">
         <Check className="h-3.5 w-3.5" /> Yes
       </span>
     );
   if (value === "partial")
     return (
-      <span className="inline-flex items-center gap-1 text-amber-700 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 text-amber-400 text-xs font-semibold">
         <AlertTriangle className="h-3.5 w-3.5" /> Partial
       </span>
     );
   if (value === "standalone_laptop")
     return (
-      <span className="inline-flex items-center gap-1 text-blue-700 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 text-blue-400 text-xs font-semibold">
         <Check className="h-3.5 w-3.5" /> Standalone
       </span>
     );
   if (value === "none")
     return (
-      <span className="inline-flex items-center gap-1 text-slate-200 text-xs font-semibold">
+      <span className="inline-flex items-center gap-1 text-slate-400 text-xs font-semibold">
         <X className="h-3.5 w-3.5" /> None
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 text-rose-700 text-xs font-semibold">
+    <span className="inline-flex items-center gap-1 text-rose-400 text-xs font-semibold">
       <X className="h-3.5 w-3.5" /> No
     </span>
   );
