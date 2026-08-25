@@ -71,12 +71,14 @@ import { NavTabs } from "@/components/nav-tabs";
 import {
   AGING_THRESHOLD_DAYS,
   AgingBadge,
+  AttachmentThumb,
   BundleCell,
   ProductTypeCell,
   STATUS_META,
   StatusBadge,
   getDaysAging,
   isAging,
+  isPdfUrl,
 } from "@/lib/returns-shared";
 
 export const Route = createFileRoute("/returns")({
@@ -179,7 +181,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">
+          <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/30">
             <Eye className="h-3 w-3" /> Read-only view
           </span>
         </header>
@@ -192,19 +194,19 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
               label: "Completed",
               value: data.filter((d) => d.status === "completed" || d.status === "credit_processed")
                 .length,
-              cls: "text-emerald-700",
+              cls: "text-emerald-400",
             },
             {
               label: "Pending / Active",
               value: data.filter((d) =>
                 ["pending", "started", "in_progress", "incomplete"].includes(d.status),
               ).length,
-              cls: "text-amber-700",
+              cls: "text-amber-400",
             },
             {
               label: "Missing",
               value: data.filter((d) => d.status === "missing").length,
-              cls: "text-rose-700",
+              cls: "text-rose-400",
             },
           ].map(({ label, value, cls }) => (
             <div key={label} className="rounded-xl border bg-card p-4 shadow-sm">
@@ -288,7 +290,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     onClick={() => setViewEntry(r)}
                   >
                     <td className="px-3.5 py-2.5">
-                      <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-blue-100">
+                      <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded bg-accent text-accent-foreground border border-white/10">
                         {r.refType}
                       </span>
                     </td>
@@ -319,13 +321,13 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <td className="px-3.5 py-2.5 text-xs">
                       {r.creditStatus === "supplier_credit" ? (
                         <div className="flex flex-col">
-                          <span className="font-semibold text-emerald-700">Supplier credit</span>
+                          <span className="font-semibold text-emerald-400">Supplier credit</span>
                           <span className="font-mono text-[11px] text-muted-foreground">
                             {r.creditNoteNumber || "— no CN —"}
                           </span>
                         </div>
                       ) : r.creditStatus === "no_physical_unit" ? (
-                        <span className="font-semibold text-rose-700">No physical unit</span>
+                        <span className="font-semibold text-rose-400">No physical unit</span>
                       ) : (
                         <span className="font-semibold text-slate-200">Unit on hand</span>
                       )}
@@ -415,9 +417,9 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     label="Credit Status"
                     value={
                       viewEntry.creditStatus === "supplier_credit" ? (
-                        <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                        <span className="text-emerald-400 font-semibold">Supplier Credit</span>
                       ) : viewEntry.creditStatus === "no_physical_unit" ? (
-                        <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                        <span className="text-rose-400 font-semibold">No Physical Unit</span>
                       ) : (
                         <span className="text-slate-200 font-semibold">Unit on Hand</span>
                       )
@@ -430,7 +432,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <DetailRow
                       label="Credit Requested"
                       value={
-                        <span className="font-bold text-blue-700">
+                        <span className="font-bold text-blue-400">
                           R {viewEntry.requestedCreditAmount}
                         </span>
                       }
@@ -440,7 +442,7 @@ function ReadOnlyView({ data }: { data: ReturnEntry[] }) {
                     <DetailRow
                       label="Supplier Credited"
                       value={
-                        <span className="font-bold text-emerald-700">
+                        <span className="font-bold text-emerald-400">
                           R {viewEntry.supplierCreditAmount}
                         </span>
                       }
@@ -1064,7 +1066,7 @@ function ReturnsTrackerPage() {
                 className={cn(
                   "text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center",
                   activeTab === "credited"
-                    ? "bg-violet-100 text-violet-600"
+                    ? "bg-violet-500/15 text-violet-400"
                     : "bg-[#2a343c] text-slate-400",
                 )}
               >
@@ -1294,7 +1296,7 @@ function ReturnsTrackerPage() {
                       <td className="px-3.5 py-3 text-xs">
                         {r.creditStatus === "supplier_credit" ? (
                           <div>
-                            <span className="font-semibold text-emerald-700 block text-[11px]">
+                            <span className="font-semibold text-emerald-400 block text-[11px]">
                               Supplier credit
                             </span>
                             <span className="font-mono text-[10px] text-slate-400">
@@ -1302,7 +1304,7 @@ function ReturnsTrackerPage() {
                             </span>
                           </div>
                         ) : r.creditStatus === "no_physical_unit" ? (
-                          <span className="text-[11px] font-semibold text-rose-600">No unit</span>
+                          <span className="text-[11px] font-semibold text-rose-400">No unit</span>
                         ) : (
                           <span className="text-[11px] text-slate-400">On hand</span>
                         )}
@@ -1339,7 +1341,7 @@ function ReturnsTrackerPage() {
                               title="Mark as Credited"
                               onClick={() => markCreditedMutation.mutate(r)}
                               disabled={markCreditedMutation.isPending}
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/30 transition-colors disabled:opacity-50"
                             >
                               {markCreditedMutation.isPending ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -1404,7 +1406,7 @@ function ReturnsTrackerPage() {
           </DialogHeader>
 
           {saveError && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="flex items-start gap-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
               <span>{saveError}</span>
             </div>
@@ -1444,7 +1446,7 @@ function ReturnsTrackerPage() {
                     )}
                   />
                   {submitAttempted && !form.refNumber.trim() && (
-                    <p className="text-xs text-rose-600 mt-1">Reference number is required.</p>
+                    <p className="text-xs text-rose-400 mt-1">Reference number is required.</p>
                   )}
                 </Field>
                 <Field label="Job Number">
@@ -1794,9 +1796,9 @@ function ReturnsTrackerPage() {
                     label="Credit Status"
                     value={
                       viewEntry.creditStatus === "supplier_credit" ? (
-                        <span className="text-emerald-700 font-semibold">Supplier Credit</span>
+                        <span className="text-emerald-400 font-semibold">Supplier Credit</span>
                       ) : viewEntry.creditStatus === "no_physical_unit" ? (
-                        <span className="text-rose-700 font-semibold">No Physical Unit</span>
+                        <span className="text-rose-400 font-semibold">No Physical Unit</span>
                       ) : (
                         <span className="text-slate-200 font-semibold">Unit on Hand</span>
                       )
@@ -1809,7 +1811,7 @@ function ReturnsTrackerPage() {
                     <DetailRow
                       label="Credit Requested"
                       value={
-                        <span className="font-bold text-blue-700">
+                        <span className="font-bold text-blue-400">
                           R {viewEntry.requestedCreditAmount}
                         </span>
                       }
@@ -1819,7 +1821,7 @@ function ReturnsTrackerPage() {
                     <DetailRow
                       label="Supplier Credited"
                       value={
-                        <span className="font-bold text-emerald-700">
+                        <span className="font-bold text-emerald-400">
                           R {viewEntry.supplierCreditAmount}
                         </span>
                       }
@@ -1854,10 +1856,10 @@ function ReturnsTrackerPage() {
                         rel="noreferrer"
                         className="group"
                       >
-                        <img
-                          src={viewEntry.grsRfcGrnImageUrl}
+                        <AttachmentThumb
+                          url={viewEntry.grsRfcGrnImageUrl}
                           alt="RFC/GRS/GRN document"
-                          className="h-20 w-20 object-cover rounded-lg border border-white/10 group-hover:opacity-80 transition-opacity"
+                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
                         />
                         <p className="text-[10px] text-muted-foreground mt-1 text-center">
                           RFC/GRS/GRN
@@ -1871,10 +1873,10 @@ function ReturnsTrackerPage() {
                         rel="noreferrer"
                         className="group"
                       >
-                        <img
-                          src={viewEntry.supplierCreditImageUrl}
+                        <AttachmentThumb
+                          url={viewEntry.supplierCreditImageUrl}
                           alt="Supplier credit document"
-                          className="h-20 w-20 object-cover rounded-lg border border-white/10 group-hover:opacity-80 transition-opacity"
+                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
                         />
                         <p className="text-[10px] text-muted-foreground mt-1 text-center">
                           Supplier Credit
@@ -1978,7 +1980,7 @@ function IconBtn({
       className={cn(
         "p-1.5 rounded-md transition-colors",
         danger
-          ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+          ? "text-slate-400 hover:text-rose-400 hover:bg-rose-500/10"
           : "text-slate-400 hover:text-slate-200 hover:bg-[#232e36]",
       )}
     >
@@ -2128,10 +2130,17 @@ function AttachmentField({
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const isImage = file.type.startsWith("image/");
+    if (!isPdf && !isImage) {
+      setError("Only images or PDF files are allowed.");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     setUploading(true);
     setError(null);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = file.name.split(".").pop() || (isPdf ? "pdf" : "jpg");
       const path = `${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("return-attachments")
@@ -2152,12 +2161,18 @@ function AttachmentField({
       {value ? (
         <div className="flex items-center gap-2">
           <a href={value} target="_blank" rel="noreferrer">
-            <img
-              src={value}
-              alt={label}
-              className="h-14 w-14 object-cover rounded-md border border-white/10"
-            />
+            <AttachmentThumb url={value} alt={label} />
           </a>
+          {isPdfUrl(value) && (
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-medium text-blue-400 hover:text-blue-300 underline underline-offset-2"
+            >
+              View PDF
+            </a>
+          )}
           <Button type="button" variant="outline" size="sm" onClick={() => onChange("")}>
             <Trash2 className="h-3.5 w-3.5" /> Remove
           </Button>
@@ -2176,11 +2191,11 @@ function AttachmentField({
           ) : (
             <Paperclip className="h-4 w-4" />
           )}
-          {uploading ? "Uploading…" : "Attach image"}
+          {uploading ? "Uploading…" : "Attach image or PDF"}
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             className="hidden"
             onChange={handleFile}
             disabled={uploading}
