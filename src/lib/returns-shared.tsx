@@ -12,37 +12,111 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { ReturnEntry, Status, ProductType, Bundle } from "@/lib/returns.functions";
 
-// ── Attachment helpers: uploads can be images or PDFs ──
+// ── Attachment helpers: uploads can be images or PDFs, stored in a
+// private bucket. Stored values are historical public URLs or plain
+// storage paths; we resolve them to a short-lived signed URL to display. ──
+const ATTACHMENTS_BUCKET = "return-attachments";
+const SIGNED_URL_TTL_SECONDS = 3600;
+
 export function isPdfUrl(url: string): boolean {
   return /\.pdf(\?|$)/i.test(url);
 }
 
-export function AttachmentThumb({
+function extractAttachmentPath(url: string): string {
+  const marker = `/${ATTACHMENTS_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return url;
+  return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
+}
+
+export function useSignedAttachmentUrl(url: string): string | null {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSignedUrl(null);
+    if (!url) return;
+    let cancelled = false;
+    const path = extractAttachmentPath(url);
+    supabase.storage
+      .from(ATTACHMENTS_BUCKET)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setSignedUrl(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return signedUrl;
+}
+
+export function AttachmentPreview({
   url,
   alt,
   size = "h-14 w-14",
+  caption,
 }: {
   url: string;
   alt: string;
   size?: string;
+  caption?: string;
 }) {
-  if (isPdfUrl(url)) {
-    return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#232e36] text-rose-400",
-          size,
-        )}
-        title={alt}
+  const signedUrl = useSignedAttachmentUrl(url);
+  const pdf = isPdfUrl(url);
+  const ready = Boolean(signedUrl);
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <a
+        href={signedUrl ?? undefined}
+        target="_blank"
+        rel="noreferrer"
+        className={cn("group", !ready && "pointer-events-none")}
       >
-        <FileText className="h-5 w-5" />
-        <span className="text-[9px] font-semibold uppercase tracking-wide">PDF</span>
-      </div>
-    );
-  }
-  return <img src={url} alt={alt} className={cn("object-cover rounded-md border border-white/10", size)} />;
+        {pdf ? (
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#232e36] text-rose-400 group-hover:opacity-80 transition-opacity",
+              size,
+            )}
+            title={alt}
+          >
+            <FileText className="h-5 w-5" />
+            <span className="text-[9px] font-semibold uppercase tracking-wide">PDF</span>
+          </div>
+        ) : ready ? (
+          <img
+            src={signedUrl!}
+            alt={alt}
+            className={cn(
+              "object-cover rounded-md border border-white/10 group-hover:opacity-80 transition-opacity",
+              size,
+            )}
+          />
+        ) : (
+          <div className={cn("rounded-md border border-white/10 bg-[#232e36] animate-pulse", size)} />
+        )}
+      </a>
+      {pdf && (
+        <a
+          href={signedUrl ?? undefined}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            "text-xs font-medium text-blue-400 hover:text-blue-300 underline underline-offset-2",
+            !ready && "pointer-events-none opacity-60",
+          )}
+        >
+          View PDF
+        </a>
+      )}
+      {caption && <p className="text-[10px] text-muted-foreground text-center">{caption}</p>}
+    </div>
+  );
 }
 
 // ── Animated counter hook ──

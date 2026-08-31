@@ -71,14 +71,13 @@ import { NavTabs } from "@/components/nav-tabs";
 import {
   AGING_THRESHOLD_DAYS,
   AgingBadge,
-  AttachmentThumb,
+  AttachmentPreview,
   BundleCell,
   ProductTypeCell,
   STATUS_META,
   StatusBadge,
   getDaysAging,
   isAging,
-  isPdfUrl,
 } from "@/lib/returns-shared";
 
 export const Route = createFileRoute("/returns")({
@@ -1850,38 +1849,20 @@ function ReturnsTrackerPage() {
                   </p>
                   <div className="flex gap-3 flex-wrap">
                     {viewEntry.grsRfcGrnImageUrl && (
-                      <a
-                        href={viewEntry.grsRfcGrnImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group"
-                      >
-                        <AttachmentThumb
-                          url={viewEntry.grsRfcGrnImageUrl}
-                          alt="RFC/GRS/GRN document"
-                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
-                          RFC/GRS/GRN
-                        </p>
-                      </a>
+                      <AttachmentPreview
+                        url={viewEntry.grsRfcGrnImageUrl}
+                        alt="RFC/GRS/GRN document"
+                        size="h-20 w-20"
+                        caption="RFC/GRS/GRN"
+                      />
                     )}
                     {viewEntry.supplierCreditImageUrl && (
-                      <a
-                        href={viewEntry.supplierCreditImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group"
-                      >
-                        <AttachmentThumb
-                          url={viewEntry.supplierCreditImageUrl}
-                          alt="Supplier credit document"
-                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
-                          Supplier Credit
-                        </p>
-                      </a>
+                      <AttachmentPreview
+                        url={viewEntry.supplierCreditImageUrl}
+                        alt="Supplier credit document"
+                        size="h-20 w-20"
+                        caption="Supplier Credit"
+                      />
                     )}
                   </div>
                 </div>
@@ -2160,19 +2141,7 @@ function AttachmentField({
     <Field label={label}>
       {value ? (
         <div className="flex items-center gap-2">
-          <a href={value} target="_blank" rel="noreferrer">
-            <AttachmentThumb url={value} alt={label} />
-          </a>
-          {isPdfUrl(value) && (
-            <a
-              href={value}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-medium text-blue-400 hover:text-blue-300 underline underline-offset-2"
-            >
-              View PDF
-            </a>
-          )}
+          <AttachmentPreview url={value} alt={label} />
           <Button type="button" variant="outline" size="sm" onClick={() => onChange("")}>
             <Trash2 className="h-3.5 w-3.5" /> Remove
           </Button>
