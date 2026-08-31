@@ -125,7 +125,7 @@ function DashboardPage() {
                     <h2 className="text-sm font-semibold text-slate-200">Financial Overview</h2>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                     <span className="text-[11px] text-slate-400 font-medium">Live</span>
                   </div>
                 </div>
@@ -194,8 +194,8 @@ function DashboardPage() {
                     <AreaChart data={weeklyTrend} margin={{ top: 5, right: 20, left: 5, bottom: 0 }}>
                       <defs>
                         <linearGradient id="trendCount" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#34d399" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff14" vertical={false} />
@@ -228,7 +228,7 @@ function DashboardPage() {
                       <Area
                         type="monotone"
                         dataKey="count"
-                        stroke="#34d399"
+                        stroke="#22d3ee"
                         strokeWidth={2}
                         fill="url(#trendCount)"
                       />
