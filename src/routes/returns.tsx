@@ -27,6 +27,8 @@ import {
   Paperclip,
   History,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -674,6 +676,19 @@ function ReturnsTrackerPage() {
     sortDir,
   ]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+  // Jump back to page 1 whenever the result set changes shape, so pagination
+  // never gets stranded on a now-empty page after filtering.
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, typeFilter, storeFilter, agingOnly, dateFrom, dateTo, activeTab, sortKey, sortDir]);
+
   const stats = useMemo(() => {
     const parseAmt = (v: string) => {
       const n = parseFloat(v.replace(/[^0-9.]/g, ""));
@@ -1247,7 +1262,7 @@ function ReturnsTrackerPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
+                  pageItems.map((r) => (
                     <tr
                       key={r.id}
                       className="group border-b border-white/10 last:border-0 hover:bg-[#1c242a]/80 transition-colors cursor-pointer"
@@ -1404,14 +1419,39 @@ function ReturnsTrackerPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-white/10 bg-[#1c242a]/80 flex items-center justify-between">
+            <div className="px-4 py-2.5 border-t border-white/10 bg-[#1c242a]/80 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] text-slate-400">
-                Showing <strong className="text-slate-300">{filtered.length}</strong> of{" "}
-                <strong className="text-slate-300">{tableSource.length}</strong> entries
+                Showing{" "}
+                <strong className="text-slate-300">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
+                </strong>{" "}
+                of <strong className="text-slate-300">{filtered.length}</strong> entries
               </p>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Hover a row to reveal actions
-              </p>
+              {totalPages > 1 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-slate-300 hover:bg-[#232e36] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                  </button>
+                  <span className="text-[11px] text-slate-400 px-1.5">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-slate-300 hover:bg-[#232e36] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 hidden sm:block">
+                  Hover a row to reveal actions
+                </p>
+              )}
             </div>
           )}
         </div>
