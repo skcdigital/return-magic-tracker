@@ -27,6 +27,8 @@ import {
   Paperclip,
   History,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -57,6 +59,8 @@ import {
   updateReturn,
   deleteReturn,
   listReturnAudit,
+  checkDuplicateRefNumber,
+  getMyRole,
   type AuditEntry,
   type ReturnEntry,
   type RefType,
@@ -64,6 +68,7 @@ import {
   type Bundle,
   type ProductType,
   type CreditStatus,
+  type DuplicateRefMatch,
 } from "@/lib/returns.functions";
 import { SignOutButton } from "@/components/auth-gate";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,14 +76,14 @@ import { NavTabs } from "@/components/nav-tabs";
 import {
   AGING_THRESHOLD_DAYS,
   AgingBadge,
-  AttachmentThumb,
+  AttachmentPreview,
+  BarcodeScanButton,
   BundleCell,
   ProductTypeCell,
   STATUS_META,
   StatusBadge,
   getDaysAging,
   isAging,
-  isPdfUrl,
 } from "@/lib/returns-shared";
 
 export const Route = createFileRoute("/returns")({
@@ -480,6 +485,15 @@ function ReturnsTrackerPage() {
   const fetchCreate = useServerFn(createReturn);
   const fetchUpdate = useServerFn(updateReturn);
   const fetchDelete = useServerFn(deleteReturn);
+  const fetchCheckDuplicate = useServerFn(checkDuplicateRefNumber);
+  const fetchMyRole = useServerFn(getMyRole);
+
+  const { data: roleData } = useQuery({
+    queryKey: ["my-role"],
+    queryFn: () => fetchMyRole(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const isAdmin = roleData?.isAdmin ?? false;
 
   // Check for read-only mode via URL param ?view=readonly
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -521,6 +535,22 @@ function ReturnsTrackerPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [dupMatches, setDupMatches] = useState<DuplicateRefMatch[]>([]);
+
+  // Debounced check for an existing return with the same reference number —
+  // a soft warning only, since real placeholder refs like "-" legitimately repeat.
+  useEffect(() => {
+    if (!modalOpen || !form.refNumber.trim()) {
+      setDupMatches([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      fetchCheckDuplicate({ data: { refNumber: form.refNumber, excludeId: editingId ?? undefined } })
+        .then((res) => setDupMatches(res.matches))
+        .catch(() => setDupMatches([]));
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [form.refNumber, modalOpen, editingId, fetchCheckDuplicate]);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -646,6 +676,19 @@ function ReturnsTrackerPage() {
     sortKey,
     sortDir,
   ]);
+
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+  // Jump back to page 1 whenever the result set changes shape, so pagination
+  // never gets stranded on a now-empty page after filtering.
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, typeFilter, storeFilter, agingOnly, dateFrom, dateTo, activeTab, sortKey, sortDir]);
 
   const stats = useMemo(() => {
     const parseAmt = (v: string) => {
@@ -1159,7 +1202,79 @@ function ReturnsTrackerPage() {
 
         {/* ── Table ── */}
         <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile card list — the dense table below is desktop-only */}
+          <div className="sm:hidden">
+            {isLoading ? (
+              <div className="py-16 text-center">
+                <Loader2 className="h-7 w-7 mx-auto mb-3 animate-spin text-slate-300" />
+                <p className="text-sm text-slate-400">Loading returns…</p>
+              </div>
+            ) : isError ? (
+              <div className="py-14 text-center">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" />
+                <p className="text-sm font-medium text-slate-300">Failed to load</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                <p className="text-sm font-semibold text-slate-400 mb-1">
+                  {tableSource.length === 0
+                    ? activeTab === "credited"
+                      ? "No credited returns yet"
+                      : "No returns yet"
+                    : "No results"}
+                </p>
+                <span className="text-xs text-slate-400">
+                  {tableSource.length === 0
+                    ? activeTab === "credited"
+                      ? "Move returns here once credited."
+                      : 'Tap "Add Return" to get started.'
+                    : "Adjust your filters."}
+                </span>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {pageItems.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setViewEntry(r)}
+                    className="w-full text-left p-3.5 active:bg-[#1c242a] transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-900 text-white flex-shrink-0">
+                          {r.refType}
+                        </span>
+                        <span className="font-mono text-xs font-semibold text-slate-200 truncate">
+                          {r.refNumber || "—"}
+                        </span>
+                        {(r.grsRfcGrnImageUrl || r.supplierCreditImageUrl) && (
+                          <Paperclip className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <StatusBadge status={r.status} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                      <span className="truncate">{r.storeName || "No store"}</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span>
+                          {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                        </span>
+                        {(() => {
+                          const days = getDaysAging(r);
+                          return days !== null && days > AGING_THRESHOLD_DAYS ? (
+                            <AgingBadge days={days} />
+                          ) : null;
+                        })()}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm min-w-[1100px]">
               <thead>
                 <tr className="border-b border-white/10 bg-[#1c242a]">
@@ -1220,7 +1335,7 @@ function ReturnsTrackerPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
+                  pageItems.map((r) => (
                     <tr
                       key={r.id}
                       className="group border-b border-white/10 last:border-0 hover:bg-[#1c242a]/80 transition-colors cursor-pointer"
@@ -1363,9 +1478,11 @@ function ReturnsTrackerPage() {
                           <IconBtn label="Edit" onClick={() => openEdit(r)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </IconBtn>
-                          <IconBtn label="Delete" danger onClick={() => remove(r.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </IconBtn>
+                          {isAdmin && (
+                            <IconBtn label="Delete" danger onClick={() => remove(r.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </IconBtn>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1375,14 +1492,39 @@ function ReturnsTrackerPage() {
             </table>
           </div>
           {filtered.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-white/10 bg-[#1c242a]/80 flex items-center justify-between">
+            <div className="px-4 py-2.5 border-t border-white/10 bg-[#1c242a]/80 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] text-slate-400">
-                Showing <strong className="text-slate-300">{filtered.length}</strong> of{" "}
-                <strong className="text-slate-300">{tableSource.length}</strong> entries
+                Showing{" "}
+                <strong className="text-slate-300">
+                  {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
+                </strong>{" "}
+                of <strong className="text-slate-300">{filtered.length}</strong> entries
               </p>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Hover a row to reveal actions
-              </p>
+              {totalPages > 1 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-slate-300 hover:bg-[#232e36] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                  </button>
+                  <span className="text-[11px] text-slate-400 px-1.5">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md text-slate-300 hover:bg-[#232e36] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                  >
+                    Next <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 hidden sm:block">
+                  Hover a row to reveal actions
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1448,6 +1590,24 @@ function ReturnsTrackerPage() {
                   {submitAttempted && !form.refNumber.trim() && (
                     <p className="text-xs text-rose-400 mt-1">Reference number is required.</p>
                   )}
+                  {dupMatches.length > 0 && (
+                    <div className="mt-1.5 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-400">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span>
+                        Already used by {dupMatches.length} other return
+                        {dupMatches.length === 1 ? "" : "s"}
+                        {(() => {
+                          const first = dupMatches[0];
+                          const details = [
+                            first.storeName || null,
+                            first.date ? format(new Date(first.date + "T00:00:00"), "dd MMM yyyy") : null,
+                          ].filter(Boolean);
+                          return details.length ? ` (e.g. ${details.join(", ")})` : "";
+                        })()}{" "}
+                        — double check before saving.
+                      </span>
+                    </div>
+                  )}
                 </Field>
                 <Field label="Job Number">
                   <Input
@@ -1457,11 +1617,16 @@ function ReturnsTrackerPage() {
                   />
                 </Field>
                 <Field label="Serial Number">
-                  <Input
-                    value={form.serialNumber}
-                    onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
-                    placeholder="e.g. SN7812345600"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={form.serialNumber}
+                      onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
+                      placeholder="e.g. SN7812345600"
+                    />
+                    <BarcodeScanButton
+                      onDetect={(value) => setForm((f) => ({ ...f, serialNumber: value }))}
+                    />
+                  </div>
                 </Field>
                 <Field label="Date">
                   <Popover>
@@ -1850,38 +2015,20 @@ function ReturnsTrackerPage() {
                   </p>
                   <div className="flex gap-3 flex-wrap">
                     {viewEntry.grsRfcGrnImageUrl && (
-                      <a
-                        href={viewEntry.grsRfcGrnImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group"
-                      >
-                        <AttachmentThumb
-                          url={viewEntry.grsRfcGrnImageUrl}
-                          alt="RFC/GRS/GRN document"
-                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
-                          RFC/GRS/GRN
-                        </p>
-                      </a>
+                      <AttachmentPreview
+                        url={viewEntry.grsRfcGrnImageUrl}
+                        alt="RFC/GRS/GRN document"
+                        size="h-20 w-20"
+                        caption="RFC/GRS/GRN"
+                      />
                     )}
                     {viewEntry.supplierCreditImageUrl && (
-                      <a
-                        href={viewEntry.supplierCreditImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group"
-                      >
-                        <AttachmentThumb
-                          url={viewEntry.supplierCreditImageUrl}
-                          alt="Supplier credit document"
-                          size="h-20 w-20 group-hover:opacity-80 transition-opacity"
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1 text-center">
-                          Supplier Credit
-                        </p>
-                      </a>
+                      <AttachmentPreview
+                        url={viewEntry.supplierCreditImageUrl}
+                        alt="Supplier credit document"
+                        size="h-20 w-20"
+                        caption="Supplier Credit"
+                      />
                     )}
                   </div>
                 </div>
@@ -2160,19 +2307,7 @@ function AttachmentField({
     <Field label={label}>
       {value ? (
         <div className="flex items-center gap-2">
-          <a href={value} target="_blank" rel="noreferrer">
-            <AttachmentThumb url={value} alt={label} />
-          </a>
-          {isPdfUrl(value) && (
-            <a
-              href={value}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-medium text-blue-400 hover:text-blue-300 underline underline-offset-2"
-            >
-              View PDF
-            </a>
-          )}
+          <AttachmentPreview url={value} alt={label} />
           <Button type="button" variant="outline" size="sm" onClick={() => onChange("")}>
             <Trash2 className="h-3.5 w-3.5" /> Remove
           </Button>

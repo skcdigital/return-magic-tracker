@@ -34,7 +34,7 @@ function AnalyticsPage() {
                 <h2 className="text-sm font-semibold text-slate-200">Analytics</h2>
               </div>
               <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> Live
               </span>
             </div>
             <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-6">

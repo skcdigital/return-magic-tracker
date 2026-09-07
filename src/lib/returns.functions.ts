@@ -93,6 +93,20 @@ export const listReturns = createServerFn({ method: "GET" })
     return { entries: (data ?? []).map(dbToEntry) };
   });
 
+// Only admins can delete return entries (enforced by RLS on return_entries;
+// this just lets the UI hide the delete affordance for everyone else).
+export const getMyRole = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { isAdmin: data?.role === "admin" };
+  });
+
 const createSchema = z.object({
   refType: RefTypeSchema,
   refNumber: z.string().min(1),
@@ -169,6 +183,50 @@ export const deleteReturn = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("return_entries").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { success: true };
+  });
+
+// Reference numbers like "-" or "?" are used as placeholders when no real
+// reference is available yet, and legitimately repeat across entries — only
+// warn on duplicates of an actual-looking reference number.
+const PLACEHOLDER_REF_NUMBERS = new Set(["-", "?", "n/a", "na", "unknown", "none", "tbc", "pending"]);
+
+export interface DuplicateRefMatch {
+  id: string;
+  refType: RefType;
+  storeName: string;
+  date: string;
+  status: Status;
+}
+
+const checkDuplicateRefSchema = z.object({
+  refNumber: z.string(),
+  excludeId: z.string().uuid().optional(),
+});
+
+export const checkDuplicateRefNumber = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => checkDuplicateRefSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const normalized = data.refNumber.trim();
+    if (!normalized || PLACEHOLDER_REF_NUMBERS.has(normalized.toLowerCase())) {
+      return { matches: [] as DuplicateRefMatch[] };
+    }
+    let query = context.supabase
+      .from("return_entries")
+      .select("id, ref_type, store_name, date, status")
+      .ilike("ref_number", normalized)
+      .limit(5);
+    if (data.excludeId) query = query.neq("id", data.excludeId);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    const matches: DuplicateRefMatch[] = (rows ?? []).map((r: any) => ({
+      id: String(r.id),
+      refType: String(r.ref_type) as RefType,
+      storeName: String(r.store_name ?? ""),
+      date: String(r.date ?? ""),
+      status: String(r.status ?? "pending") as Status,
+    }));
+    return { matches };
   });
 
 export interface AuditEntry {

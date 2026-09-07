@@ -10,39 +10,231 @@ import {
   Check,
   X,
   FileText,
+  ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { ReturnEntry, Status, ProductType, Bundle } from "@/lib/returns.functions";
 
-// ── Attachment helpers: uploads can be images or PDFs ──
+// Not yet in TS's DOM lib — declare the shape we use.
+interface BarcodeDetectorResult {
+  rawValue: string;
+}
+interface BarcodeDetectorLike {
+  detect(source: CanvasImageSource): Promise<BarcodeDetectorResult[]>;
+}
+declare global {
+  interface Window {
+    BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+  }
+}
+
+// ── Camera barcode scanner: fills a field from a device camera scan.
+// Silently unavailable (renders nothing) on browsers without BarcodeDetector
+// support (e.g. Safari) — manual entry always remains the fallback. ──
+export function BarcodeScanButton({ onDetect }: { onDetect: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const supported = typeof window !== "undefined" && !!window.BarcodeDetector;
+
+  useEffect(() => {
+    if (!open || !window.BarcodeDetector) return;
+    let cancelled = false;
+    const detector = new window.BarcodeDetector();
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        const tick = async () => {
+          if (cancelled || !videoRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes.length > 0) {
+              onDetect(codes[0].rawValue);
+              setOpen(false);
+              return;
+            }
+          } catch {
+            // Ignore per-frame detection errors (e.g. video not ready yet).
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } catch {
+        if (!cancelled) setError("Camera access denied or unavailable.");
+      }
+    }
+    start();
+
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
+  }, [open, onDetect]);
+
+  if (!supported) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
+        title="Scan barcode"
+        className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/10 bg-[#20282f] text-slate-300 hover:text-primary hover:border-primary/40 transition-colors flex-shrink-0"
+      >
+        <ScanLine className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-[#161d22] rounded-xl border border-white/10 overflow-hidden max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <p className="text-sm font-semibold text-white">Scan barcode</p>
+              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="relative aspect-video bg-black">
+              <video ref={videoRef} muted playsInline className="w-full h-full object-cover" />
+              <div className="absolute inset-6 border-2 border-primary/70 rounded-lg pointer-events-none" />
+            </div>
+            <p className={cn("px-4 py-3 text-xs", error ? "text-rose-400" : "text-slate-400")}>
+              {error ?? "Point the camera at the barcode."}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Attachment helpers: uploads can be images or PDFs, stored in a
+// private bucket. Stored values are historical public URLs or plain
+// storage paths; we resolve them to a short-lived signed URL to display. ──
+const ATTACHMENTS_BUCKET = "return-attachments";
+const SIGNED_URL_TTL_SECONDS = 3600;
+
 export function isPdfUrl(url: string): boolean {
   return /\.pdf(\?|$)/i.test(url);
 }
 
-export function AttachmentThumb({
+function extractAttachmentPath(url: string): string {
+  const marker = `/${ATTACHMENTS_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return url;
+  return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
+}
+
+export function useSignedAttachmentUrl(url: string): string | null {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSignedUrl(null);
+    if (!url) return;
+    let cancelled = false;
+    const path = extractAttachmentPath(url);
+    supabase.storage
+      .from(ATTACHMENTS_BUCKET)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setSignedUrl(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return signedUrl;
+}
+
+export function AttachmentPreview({
   url,
   alt,
   size = "h-14 w-14",
+  caption,
 }: {
   url: string;
   alt: string;
   size?: string;
+  caption?: string;
 }) {
-  if (isPdfUrl(url)) {
-    return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#232e36] text-rose-400",
-          size,
-        )}
-        title={alt}
+  const signedUrl = useSignedAttachmentUrl(url);
+  const pdf = isPdfUrl(url);
+  const ready = Boolean(signedUrl);
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <a
+        href={signedUrl ?? undefined}
+        target="_blank"
+        rel="noreferrer"
+        className={cn("group", !ready && "pointer-events-none")}
       >
-        <FileText className="h-5 w-5" />
-        <span className="text-[9px] font-semibold uppercase tracking-wide">PDF</span>
-      </div>
-    );
-  }
-  return <img src={url} alt={alt} className={cn("object-cover rounded-md border border-white/10", size)} />;
+        {pdf ? (
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 rounded-md border border-white/10 bg-[#232e36] text-rose-400 group-hover:opacity-80 transition-opacity",
+              size,
+            )}
+            title={alt}
+          >
+            <FileText className="h-5 w-5" />
+            <span className="text-[9px] font-semibold uppercase tracking-wide">PDF</span>
+          </div>
+        ) : ready ? (
+          <img
+            src={signedUrl!}
+            alt={alt}
+            className={cn(
+              "object-cover rounded-md border border-white/10 group-hover:opacity-80 transition-opacity",
+              size,
+            )}
+          />
+        ) : (
+          <div className={cn("rounded-md border border-white/10 bg-[#232e36] animate-pulse", size)} />
+        )}
+      </a>
+      {pdf && (
+        <a
+          href={signedUrl ?? undefined}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            "text-xs font-medium text-blue-400 hover:text-blue-300 underline underline-offset-2",
+            !ready && "pointer-events-none opacity-60",
+          )}
+        >
+          View PDF
+        </a>
+      )}
+      {caption && <p className="text-[10px] text-muted-foreground text-center">{caption}</p>}
+    </div>
+  );
 }
 
 // ── Animated counter hook ──

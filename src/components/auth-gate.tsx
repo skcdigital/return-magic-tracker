@@ -26,7 +26,7 @@ function LoginScreen() {
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 mb-6 justify-center">
           <div className="h-10 w-10 rounded-lg bg-[#232e36] border border-white/10 flex items-center justify-center">
-            <Terminal className="h-5 w-5 text-emerald-400" />
+            <Terminal className="h-5 w-5 text-primary" />
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-white tracking-tight">SKC.Digital</p>
@@ -59,7 +59,7 @@ function LoginScreen() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-[#161d22] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-emerald-400"
+                className="bg-[#161d22] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary"
                 placeholder="you@skcdigital.co.za"
               />
             </div>
@@ -75,7 +75,7 @@ function LoginScreen() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-[#161d22] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-emerald-400"
+                className="bg-[#161d22] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-primary"
                 placeholder="••••••••"
               />
             </div>
@@ -89,7 +89,7 @@ function LoginScreen() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#0e1418] font-semibold"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               {loading ? "signing in…" : "sign in"}
             </Button>
@@ -132,7 +132,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (session === undefined) {
     return (
       <div className="min-h-screen bg-[#1a2228] flex items-center justify-center">
-        <div className="h-6 w-6 rounded-full border-2 border-white/20 border-t-emerald-400 animate-spin" />
+        <div className="h-6 w-6 rounded-full border-2 border-white/20 border-t-primary animate-spin" />
       </div>
     );
   }

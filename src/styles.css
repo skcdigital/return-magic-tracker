@@ -65,26 +65,28 @@
 
 :root {
   --radius: 0.5rem;
-  /* SKC Digital dark terminal theme — matches skcdigital.co.za (#1a2228) */
+  /* SKC Digital dark terminal theme — matches skcdigital.co.za: near-black
+     terminal background, cyan as the primary brand accent (nav, CTAs, focus
+     rings), green reserved for terminal-style "success" states (✓, live). */
   --background: oklch(0.24 0.017 240);
   --foreground: oklch(0.97 0.004 247);
   --card: oklch(0.28 0.018 240);
   --card-foreground: oklch(0.97 0.004 247);
   --popover: oklch(0.28 0.018 240);
   --popover-foreground: oklch(0.97 0.004 247);
-  --primary: oklch(0.72 0.17 155);
+  --primary: oklch(0.79 0.15 211);
   --primary-foreground: oklch(0.16 0.02 240);
   --secondary: oklch(0.32 0.018 240);
   --secondary-foreground: oklch(0.97 0.004 247);
   --muted: oklch(0.32 0.018 240);
   --muted-foreground: oklch(0.68 0.02 245);
-  --accent: oklch(0.34 0.03 200);
-  --accent-foreground: oklch(0.9 0.05 155);
+  --accent: oklch(0.34 0.05 205);
+  --accent-foreground: oklch(0.88 0.08 205);
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.97 0.01 27);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.72 0.17 155);
+  --ring: oklch(0.79 0.15 211);
 
   --success: oklch(0.68 0.16 152);
   --success-foreground: oklch(0.16 0.02 152);
@@ -93,17 +95,17 @@
 
   --chart-1: oklch(0.646 0.222 41);
   --chart-2: oklch(0.6 0.118 184);
-  --chart-3: oklch(0.72 0.17 155);
+  --chart-3: oklch(0.79 0.15 211);
   --chart-4: oklch(0.828 0.189 84);
   --chart-5: oklch(0.769 0.188 70);
   --sidebar: oklch(0.22 0.017 240);
   --sidebar-foreground: oklch(0.97 0.004 247);
-  --sidebar-primary: oklch(0.72 0.17 155);
+  --sidebar-primary: oklch(0.79 0.15 211);
   --sidebar-primary-foreground: oklch(0.16 0.02 240);
   --sidebar-accent: oklch(0.32 0.018 240);
   --sidebar-accent-foreground: oklch(0.97 0.004 247);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.72 0.17 155);
+  --sidebar-ring: oklch(0.79 0.15 211);
 }
 
 .dark {
