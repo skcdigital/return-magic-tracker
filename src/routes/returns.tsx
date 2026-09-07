@@ -77,6 +77,7 @@ import {
   AGING_THRESHOLD_DAYS,
   AgingBadge,
   AttachmentPreview,
+  BarcodeScanButton,
   BundleCell,
   ProductTypeCell,
   STATUS_META,
@@ -1201,7 +1202,79 @@ function ReturnsTrackerPage() {
 
         {/* ── Table ── */}
         <div className="bg-[#20282f] rounded-xl border border-white/10 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile card list — the dense table below is desktop-only */}
+          <div className="sm:hidden">
+            {isLoading ? (
+              <div className="py-16 text-center">
+                <Loader2 className="h-7 w-7 mx-auto mb-3 animate-spin text-slate-300" />
+                <p className="text-sm text-slate-400">Loading returns…</p>
+              </div>
+            ) : isError ? (
+              <div className="py-14 text-center">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-amber-400" />
+                <p className="text-sm font-medium text-slate-300">Failed to load</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <PackageOpen className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+                <p className="text-sm font-semibold text-slate-400 mb-1">
+                  {tableSource.length === 0
+                    ? activeTab === "credited"
+                      ? "No credited returns yet"
+                      : "No returns yet"
+                    : "No results"}
+                </p>
+                <span className="text-xs text-slate-400">
+                  {tableSource.length === 0
+                    ? activeTab === "credited"
+                      ? "Move returns here once credited."
+                      : 'Tap "Add Return" to get started.'
+                    : "Adjust your filters."}
+                </span>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {pageItems.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => setViewEntry(r)}
+                    className="w-full text-left p-3.5 active:bg-[#1c242a] transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-900 text-white flex-shrink-0">
+                          {r.refType}
+                        </span>
+                        <span className="font-mono text-xs font-semibold text-slate-200 truncate">
+                          {r.refNumber || "—"}
+                        </span>
+                        {(r.grsRfcGrnImageUrl || r.supplierCreditImageUrl) && (
+                          <Paperclip className="h-3 w-3 text-slate-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      <StatusBadge status={r.status} />
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-xs text-slate-400">
+                      <span className="truncate">{r.storeName || "No store"}</span>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span>
+                          {r.date ? format(new Date(r.date + "T00:00:00"), "dd MMM yyyy") : "—"}
+                        </span>
+                        {(() => {
+                          const days = getDaysAging(r);
+                          return days !== null && days > AGING_THRESHOLD_DAYS ? (
+                            <AgingBadge days={days} />
+                          ) : null;
+                        })()}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm min-w-[1100px]">
               <thead>
                 <tr className="border-b border-white/10 bg-[#1c242a]">
@@ -1544,11 +1617,16 @@ function ReturnsTrackerPage() {
                   />
                 </Field>
                 <Field label="Serial Number">
-                  <Input
-                    value={form.serialNumber}
-                    onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
-                    placeholder="e.g. SN7812345600"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={form.serialNumber}
+                      onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
+                      placeholder="e.g. SN7812345600"
+                    />
+                    <BarcodeScanButton
+                      onDetect={(value) => setForm((f) => ({ ...f, serialNumber: value }))}
+                    />
+                  </div>
                 </Field>
                 <Field label="Date">
                   <Popover>
