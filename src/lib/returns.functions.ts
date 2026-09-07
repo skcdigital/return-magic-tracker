@@ -93,6 +93,20 @@ export const listReturns = createServerFn({ method: "GET" })
     return { entries: (data ?? []).map(dbToEntry) };
   });
 
+// Only admins can delete return entries (enforced by RLS on return_entries;
+// this just lets the UI hide the delete affordance for everyone else).
+export const getMyRole = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return { isAdmin: data?.role === "admin" };
+  });
+
 const createSchema = z.object({
   refType: RefTypeSchema,
   refNumber: z.string().min(1),

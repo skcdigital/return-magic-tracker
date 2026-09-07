@@ -58,6 +58,7 @@ import {
   deleteReturn,
   listReturnAudit,
   checkDuplicateRefNumber,
+  getMyRole,
   type AuditEntry,
   type ReturnEntry,
   type RefType,
@@ -482,6 +483,14 @@ function ReturnsTrackerPage() {
   const fetchUpdate = useServerFn(updateReturn);
   const fetchDelete = useServerFn(deleteReturn);
   const fetchCheckDuplicate = useServerFn(checkDuplicateRefNumber);
+  const fetchMyRole = useServerFn(getMyRole);
+
+  const { data: roleData } = useQuery({
+    queryKey: ["my-role"],
+    queryFn: () => fetchMyRole(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const isAdmin = roleData?.isAdmin ?? false;
 
   // Check for read-only mode via URL param ?view=readonly
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -1381,9 +1390,11 @@ function ReturnsTrackerPage() {
                           <IconBtn label="Edit" onClick={() => openEdit(r)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </IconBtn>
-                          <IconBtn label="Delete" danger onClick={() => remove(r.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </IconBtn>
+                          {isAdmin && (
+                            <IconBtn label="Delete" danger onClick={() => remove(r.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </IconBtn>
+                          )}
                         </div>
                       </td>
                     </tr>
