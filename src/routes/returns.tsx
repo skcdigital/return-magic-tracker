@@ -57,6 +57,7 @@ import {
   updateReturn,
   deleteReturn,
   listReturnAudit,
+  checkDuplicateRefNumber,
   type AuditEntry,
   type ReturnEntry,
   type RefType,
@@ -64,6 +65,7 @@ import {
   type Bundle,
   type ProductType,
   type CreditStatus,
+  type DuplicateRefMatch,
 } from "@/lib/returns.functions";
 import { SignOutButton } from "@/components/auth-gate";
 import { supabase } from "@/integrations/supabase/client";
@@ -479,6 +481,7 @@ function ReturnsTrackerPage() {
   const fetchCreate = useServerFn(createReturn);
   const fetchUpdate = useServerFn(updateReturn);
   const fetchDelete = useServerFn(deleteReturn);
+  const fetchCheckDuplicate = useServerFn(checkDuplicateRefNumber);
 
   // Check for read-only mode via URL param ?view=readonly
   const [isReadOnly, setIsReadOnly] = useState(false);
@@ -520,6 +523,22 @@ function ReturnsTrackerPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [dupMatches, setDupMatches] = useState<DuplicateRefMatch[]>([]);
+
+  // Debounced check for an existing return with the same reference number —
+  // a soft warning only, since real placeholder refs like "-" legitimately repeat.
+  useEffect(() => {
+    if (!modalOpen || !form.refNumber.trim()) {
+      setDupMatches([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      fetchCheckDuplicate({ data: { refNumber: form.refNumber, excludeId: editingId ?? undefined } })
+        .then((res) => setDupMatches(res.matches))
+        .catch(() => setDupMatches([]));
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [form.refNumber, modalOpen, editingId, fetchCheckDuplicate]);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -1446,6 +1465,24 @@ function ReturnsTrackerPage() {
                   />
                   {submitAttempted && !form.refNumber.trim() && (
                     <p className="text-xs text-rose-400 mt-1">Reference number is required.</p>
+                  )}
+                  {dupMatches.length > 0 && (
+                    <div className="mt-1.5 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-400">
+                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                      <span>
+                        Already used by {dupMatches.length} other return
+                        {dupMatches.length === 1 ? "" : "s"}
+                        {(() => {
+                          const first = dupMatches[0];
+                          const details = [
+                            first.storeName || null,
+                            first.date ? format(new Date(first.date + "T00:00:00"), "dd MMM yyyy") : null,
+                          ].filter(Boolean);
+                          return details.length ? ` (e.g. ${details.join(", ")})` : "";
+                        })()}{" "}
+                        — double check before saving.
+                      </span>
+                    </div>
                   )}
                 </Field>
                 <Field label="Job Number">
