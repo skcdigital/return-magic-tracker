@@ -196,6 +196,7 @@ export interface DuplicateRefMatch {
   storeName: string;
   date: string;
   status: Status;
+  serialNumber: string;
 }
 
 const checkDuplicateRefSchema = z.object({
@@ -213,7 +214,7 @@ export const checkDuplicateRefNumber = createServerFn({ method: "GET" })
     }
     let query = context.supabase
       .from("return_entries")
-      .select("id, ref_type, store_name, date, status")
+      .select("id, ref_type, store_name, date, status, serial_number")
       .ilike("ref_number", normalized)
       .limit(5);
     if (data.excludeId) query = query.neq("id", data.excludeId);
@@ -225,6 +226,7 @@ export const checkDuplicateRefNumber = createServerFn({ method: "GET" })
       storeName: String(r.store_name ?? ""),
       date: String(r.date ?? ""),
       status: String(r.status ?? "pending") as Status,
+      serialNumber: String(r.serial_number ?? ""),
     }));
     return { matches };
   });

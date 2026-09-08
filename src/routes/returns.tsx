@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Layers,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,34 @@ const emptyEntry = (): Omit<ReturnEntry, "id" | "createdAt"> => ({
   supplierCreditImageUrl: "",
 });
 
+// Used by "+ Add another item" — a fresh entry that keeps the document-level
+// fields (reference, store, date, status) but clears the per-item fields
+// (serial, job number, product, bundle) so the next item under the same
+// GRS/RFC/GRN reference doesn't need those shared fields re-typed.
+const sameDocumentEntry = (
+  shared: Pick<ReturnEntry, "refType" | "refNumber" | "storeName" | "date" | "status" | "creditStatus">,
+): Omit<ReturnEntry, "id" | "createdAt"> => ({
+  ...emptyEntry(),
+  refType: shared.refType,
+  refNumber: shared.refNumber,
+  storeName: shared.storeName,
+  date: shared.date,
+  status: shared.status,
+  creditStatus: shared.creditStatus,
+});
+
+// Mirrors PLACEHOLDER_REF_NUMBERS in returns.functions.ts — kept in sync
+// manually since it's a small, stable list.
+const PLACEHOLDER_REF_NUMBERS_CLIENT = new Set([
+  "-",
+  "?",
+  "n/a",
+  "na",
+  "unknown",
+  "none",
+  "tbc",
+  "pending",
+]);
 
 type SortKey = keyof Pick<
   ReturnEntry,
@@ -530,6 +559,7 @@ function ReturnsTrackerPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyEntry());
+  const [justAdded, setJustAdded] = useState<Omit<ReturnEntry, "id" | "createdAt"> | null>(null);
   const [copyToast, setCopyToast] = useState(false);
   const [viewEntry, setViewEntry] = useState<ReturnEntry | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -559,12 +589,14 @@ function ReturnsTrackerPage() {
 
   const createMutation = useMutation({
     mutationFn: (entry: Omit<ReturnEntry, "id" | "createdAt">) => fetchCreate({ data: entry }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["returns"] });
-      setModalOpen(false);
       setSaveError(null);
       setSubmitAttempted(false);
       showToast("Return added successfully");
+      // Offer to add another item under the same reference instead of closing —
+      // one GRS/RFC/GRN document often covers more than one physical item.
+      setJustAdded(variables);
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : "Failed to save — please try again.";
@@ -642,6 +674,27 @@ function ReturnsTrackerPage() {
     () => [...new Set(data.map((d) => d.storeName).filter(Boolean))].sort(),
     [data],
   );
+
+  // Rows sharing a reference number are items under the same GRS/RFC/GRN
+  // document — surface that as a count badge rather than treating each row
+  // as an unrelated return. Excludes placeholder refs ("-", "?", etc.) which
+  // legitimately repeat without meaning "same document".
+  const refGroupCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of tableSource) {
+      const norm = r.refNumber.trim().toLowerCase();
+      if (!norm || PLACEHOLDER_REF_NUMBERS_CLIENT.has(norm)) continue;
+      const key = `${r.refType}|${norm}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [tableSource]);
+
+  function groupCountFor(r: ReturnEntry): number {
+    const norm = r.refNumber.trim().toLowerCase();
+    if (!norm || PLACEHOLDER_REF_NUMBERS_CLIENT.has(norm)) return 1;
+    return refGroupCounts.get(`${r.refType}|${norm}`) ?? 1;
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -735,13 +788,28 @@ function ReturnsTrackerPage() {
   function openAdd() {
     setEditingId(null);
     setForm(emptyEntry());
+    setJustAdded(null);
     setSaveError(null);
     setSubmitAttempted(false);
     setModalOpen(true);
   }
 
+  function addAnotherItem() {
+    if (!justAdded) return;
+    setForm(sameDocumentEntry(justAdded));
+    setJustAdded(null);
+    setSaveError(null);
+    setSubmitAttempted(false);
+  }
+
+  function finishAdding() {
+    setJustAdded(null);
+    setModalOpen(false);
+  }
+
   function openEdit(r: ReturnEntry) {
     setEditingId(r.id);
+    setJustAdded(null);
     setForm({
       refType: r.refType,
       refNumber: r.refNumber,
@@ -1254,6 +1322,12 @@ function ReturnsTrackerPage() {
                         <span className="font-mono text-xs font-semibold text-slate-200 truncate">
                           {r.refNumber || "—"}
                         </span>
+                        {groupCountFor(r) > 1 && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                            <Layers className="h-2.5 w-2.5" />
+                            {groupCountFor(r)}
+                          </span>
+                        )}
                         {(r.grsRfcGrnImageUrl || r.supplierCreditImageUrl) && (
                           <Paperclip className="h-3 w-3 text-slate-500 flex-shrink-0" />
                         )}
@@ -1353,8 +1427,24 @@ function ReturnsTrackerPage() {
                         </span>
                       </td>
                       <td className="px-3.5 py-3">
-                        <span className="font-mono text-xs font-semibold text-slate-200 bg-[#232e36] px-2 py-0.5 rounded">
-                          {r.refNumber || "—"}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-semibold text-slate-200 bg-[#232e36] px-2 py-0.5 rounded">
+                            {r.refNumber || "—"}
+                          </span>
+                          {groupCountFor(r) > 1 && (
+                            <button
+                              type="button"
+                              title={`${groupCountFor(r)} items under this reference — click to filter`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSearch(r.refNumber);
+                              }}
+                              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-full px-1.5 py-0.5 transition-colors"
+                            >
+                              <Layers className="h-2.5 w-2.5" />
+                              {groupCountFor(r)}
+                            </button>
+                          )}
                         </span>
                       </td>
                       <td className="px-3.5 py-3 font-mono text-xs text-slate-400">
@@ -1540,8 +1630,30 @@ function ReturnsTrackerPage() {
         </p>
       </main>
       {/* Add / Edit Modal */}
-      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setSaveError(null); setSubmitAttempted(false); } setModalOpen(open); }}>
+      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setSaveError(null); setSubmitAttempted(false); setJustAdded(null); } setModalOpen(open); }}>
         <DialogContent className="sm:max-w-[680px] max-h-[92vh] overflow-y-auto">
+          {justAdded ? (
+            <>
+              <DialogHeader className="pb-1">
+                <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Check className="h-5 w-5 text-emerald-400" /> Return added
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Does <span className="font-mono text-foreground">{justAdded.refType} {justAdded.refNumber}</span>{" "}
+                  cover another item? A GRS/RFC/GRN reference can list more than one unit.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button onClick={addAnotherItem} className="flex-1">
+                  <Layers className="h-4 w-4" /> Add another item under {justAdded.refNumber}
+                </Button>
+                <Button variant="outline" onClick={finishAdding} className="flex-1">
+                  Done
+                </Button>
+              </div>
+            </>
+          ) : (
+          <>
           <DialogHeader className="pb-1">
             <DialogTitle className="text-lg font-semibold">
               {editingId ? "Edit Return" : "Add Return"}
@@ -1596,24 +1708,48 @@ function ReturnsTrackerPage() {
                   {submitAttempted && !form.refNumber.trim() && (
                     <p className="text-xs text-rose-400 mt-1">Reference number is required.</p>
                   )}
-                  {dupMatches.length > 0 && (
-                    <div className="mt-1.5 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-400">
-                      <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                      <span>
-                        Already used by {dupMatches.length} other return
-                        {dupMatches.length === 1 ? "" : "s"}
-                        {(() => {
-                          const first = dupMatches[0];
-                          const details = [
-                            first.storeName || null,
-                            first.date ? format(new Date(first.date + "T00:00:00"), "dd MMM yyyy") : null,
-                          ].filter(Boolean);
-                          return details.length ? ` (e.g. ${details.join(", ")})` : "";
-                        })()}{" "}
-                        — double check before saving.
-                      </span>
-                    </div>
-                  )}
+                  {dupMatches.length > 0 &&
+                    (() => {
+                      const serial = form.serialNumber.trim().toLowerCase();
+                      // Same reference + same serial = likely an accidental double-entry.
+                      // Same reference + a different (or blank-vs-filled) serial = probably
+                      // another item under the same GRS/RFC/GRN document, not a mistake.
+                      const sameSerial = serial
+                        ? dupMatches.filter((m) => m.serialNumber.trim().toLowerCase() === serial)
+                        : [];
+                      const otherItems = dupMatches.filter((m) => !sameSerial.includes(m));
+
+                      if (sameSerial.length > 0) {
+                        const first = sameSerial[0];
+                        const details = [
+                          first.storeName || null,
+                          first.date ? format(new Date(first.date + "T00:00:00"), "dd MMM yyyy") : null,
+                        ].filter(Boolean);
+                        return (
+                          <div className="mt-1.5 flex items-start gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-400">
+                            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            <span>
+                              Same reference AND serial number already logged
+                              {details.length ? ` (${details.join(", ")})` : ""} — likely a
+                              duplicate, double check before saving.
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (otherItems.length > 0) {
+                        return (
+                          <div className="mt-1.5 flex items-start gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-2 text-xs text-primary">
+                            <Layers className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            <span>
+                              {otherItems.length} other item{otherItems.length === 1 ? "" : "s"}{" "}
+                              already logged under this reference — this will be added as
+                              another item on the same document.
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                 </Field>
                 <Field label="Job Number">
                   <Input
@@ -1898,6 +2034,8 @@ function ReturnsTrackerPage() {
               )}
             </Button>
           </DialogFooter>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 
