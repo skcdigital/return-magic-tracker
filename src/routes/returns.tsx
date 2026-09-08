@@ -1033,25 +1033,31 @@ function ReturnsTrackerPage() {
         }
       />
 
-      <main className="mx-auto max-w-[1400px] px-6 py-6 space-y-5 pb-12">
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-400">
-            <span className="font-semibold text-slate-200">{tableSource.length}</span> return
-            {tableSource.length === 1 ? "" : "s"} on file
+      <main className="mx-auto max-w-[1400px] px-4 sm:px-6 py-5 space-y-4 pb-14">
+        {/* ── Command bar ── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#161d22] px-3.5 py-2.5 font-mono text-xs">
+          <p className="text-slate-400">
+            <span className="text-primary">$</span> returns --list --tab={activeTab}
+            <span className="ml-1 inline-block h-3.5 w-[7px] translate-y-[2px] bg-primary/70 animate-pulse" />
           </p>
-          <button
-            onClick={() => setAgingOnly((v) => !v)}
-            className={cn(
-              "inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-3 py-1.5 border transition-colors",
-              agingOnly
-                ? "bg-amber-500/15 text-amber-400 border-amber-500/40"
-                : "bg-[#20282f] text-slate-300 border-white/10 hover:border-white/20",
-            )}
-            title={`Returns open more than ${AGING_THRESHOLD_DAYS} days`}
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Aging (&gt;{AGING_THRESHOLD_DAYS}d): {stats.aging}
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-slate-500">
+              {tableSource.length} on file
+            </span>
+            <button
+              onClick={() => setAgingOnly((v) => !v)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors",
+                agingOnly
+                  ? "bg-amber-500/15 text-amber-400"
+                  : "text-slate-400 hover:text-amber-400 hover:bg-amber-500/10",
+              )}
+              title={`Returns open more than ${AGING_THRESHOLD_DAYS} days`}
+            >
+              <AlertTriangle className="h-3 w-3" />
+              aging={stats.aging}
+            </button>
+          </div>
         </div>
 
         {agingOnly && (
@@ -1073,14 +1079,14 @@ function ReturnsTrackerPage() {
         {/* ── Tabs + Filters row ── */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-[#232e36] rounded-lg p-1">
+          <div className="flex items-center gap-0.5 bg-[#161d22] border border-white/10 rounded-lg p-0.5 h-9">
             <button
               onClick={() => setActiveTab("active")}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                "flex items-center gap-1.5 px-3 h-8 text-[13px] font-medium rounded-md transition-colors",
                 activeTab === "active"
-                  ? "bg-[#20282f] text-white shadow-sm"
-                  : "text-slate-300 hover:text-white",
+                  ? "bg-[#20282f] text-white"
+                  : "text-slate-400 hover:text-white",
               )}
             >
               Active
@@ -1098,10 +1104,10 @@ function ReturnsTrackerPage() {
             <button
               onClick={() => setActiveTab("credited")}
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                "flex items-center gap-1.5 px-3 h-8 text-[13px] font-medium rounded-md transition-colors",
                 activeTab === "credited"
-                  ? "bg-[#20282f] text-white shadow-sm"
-                  : "text-slate-300 hover:text-white",
+                  ? "bg-[#20282f] text-white"
+                  : "text-slate-400 hover:text-white",
               )}
             >
               Credited
@@ -1118,7 +1124,7 @@ function ReturnsTrackerPage() {
             </button>
           </div>
           {/* Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-[#20282f] border border-white/10 rounded-lg px-3 py-2 shadow-sm">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px] h-9 bg-[#161d22] border border-white/10 rounded-lg px-3">
             <Search className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
             <input
               value={search}
@@ -1134,7 +1140,7 @@ function ReturnsTrackerPage() {
           </div>
           {activeTab === "active" && (
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
+              <SelectTrigger className="w-[140px] h-9 bg-[#161d22] border-white/10 text-slate-200 text-xs rounded-lg">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -1149,7 +1155,7 @@ function ReturnsTrackerPage() {
             </Select>
           )}
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[110px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
+            <SelectTrigger className="w-[110px] h-9 bg-[#161d22] border-white/10 text-slate-200 text-xs rounded-lg">
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
@@ -1160,7 +1166,7 @@ function ReturnsTrackerPage() {
             </SelectContent>
           </Select>
           <Select value={storeFilter} onValueChange={setStoreFilter}>
-            <SelectTrigger className="w-[160px] h-9 bg-[#20282f] border-white/10 text-slate-200 text-xs rounded-lg shadow-sm">
+            <SelectTrigger className="w-[160px] h-9 bg-[#161d22] border-white/10 text-slate-200 text-xs rounded-lg">
               <SelectValue placeholder="All stores" />
             </SelectTrigger>
             <SelectContent>
@@ -1172,7 +1178,7 @@ function ReturnsTrackerPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center gap-1.5 bg-[#20282f] border border-white/10 rounded-lg px-2.5 py-2 shadow-sm">
+          <div className="flex items-center gap-1.5 h-9 bg-[#161d22] border border-white/10 rounded-lg px-2.5">
             <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
             <input
               type="date"
@@ -1529,8 +1535,8 @@ function ReturnsTrackerPage() {
           )}
         </div>
 
-        <p className="text-[11px] text-slate-400 text-center pb-2">
-          SKC Digital · Returns Tracker · {new Date().getFullYear()}
+        <p className="pt-1 text-center font-mono text-[11px] text-slate-600">
+          SKC Digital · built to scale
         </p>
       </main>
       {/* Add / Edit Modal */}
