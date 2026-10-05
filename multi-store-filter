@@ -1,0 +1,101 @@
+diff --git a/src/routes/returns.tsx b/src/routes/returns.tsx
+index ad65632..af48ae5 100644
+--- a/src/routes/returns.tsx
++++ b/src/routes/returns.tsx
+@@ -549,7 +549,8 @@ function ReturnsTrackerPage() {
+   const [search, setSearch] = useState("");
+   const [statusFilter, setStatusFilter] = useState<string>("all");
+   const [typeFilter, setTypeFilter] = useState<string>("all");
+-  const [storeFilter, setStoreFilter] = useState<string>("all");
++  const [storeFilter, setStoreFilter] = useState<string[]>([]);
++  const [storeQuery, setStoreQuery] = useState("");
+   const [agingOnly, setAgingOnly] = useState(false);
+   const [dateFrom, setDateFrom] = useState<string>("");
+   const [dateTo, setDateTo] = useState<string>("");
+@@ -706,7 +707,7 @@ function ReturnsTrackerPage() {
+         if (q && !hay.includes(q)) return false;
+         if (statusFilter !== "all" && r.status !== statusFilter) return false;
+         if (typeFilter !== "all" && r.refType !== typeFilter) return false;
+-        if (storeFilter !== "all" && r.storeName !== storeFilter) return false;
++        if (storeFilter.length > 0 && !storeFilter.includes(r.storeName)) return false;
+         if (agingOnly && !isAging(r)) return false;
+         if (dateFrom && r.date && r.date < dateFrom) return false;
+         if (dateTo && r.date && r.date > dateTo) return false;
+@@ -1233,19 +1234,64 @@ function ReturnsTrackerPage() {
+               <SelectItem value="GRN">GRN</SelectItem>
+             </SelectContent>
+           </Select>
+-          <Select value={storeFilter} onValueChange={setStoreFilter}>
+-            <SelectTrigger className="w-[160px] h-9 bg-[#161d22] border-white/10 text-slate-200 text-xs rounded-lg">
+-              <SelectValue placeholder="All stores" />
+-            </SelectTrigger>
+-            <SelectContent>
+-              <SelectItem value="all">All stores</SelectItem>
+-              {stores.map((s) => (
+-                <SelectItem key={s} value={s}>
+-                  {s}
+-                </SelectItem>
+-              ))}
+-            </SelectContent>
+-          </Select>
++          <Popover>
++            <PopoverTrigger asChild>
++              <button
++                type="button"
++                className="flex items-center justify-between gap-2 w-[170px] h-9 bg-[#161d22] border border-white/10 text-slate-200 text-xs rounded-lg px-3"
++              >
++                <span className="truncate">
++                  {storeFilter.length === 0
++                    ? "All stores"
++                    : storeFilter.length === 1
++                      ? storeFilter[0]
++                      : `${storeFilter.length} stores`}
++                </span>
++                <ChevronDown className="h-3.5 w-3.5 opacity-60 shrink-0" />
++              </button>
++            </PopoverTrigger>
++            <PopoverContent align="start" className="w-[240px] p-2">
++              <Input
++                value={storeQuery}
++                onChange={(e) => setStoreQuery(e.target.value)}
++                placeholder="Find store..."
++                className="h-8 text-xs mb-2"
++              />
++              <div className="max-h-60 overflow-y-auto space-y-0.5">
++                {stores
++                  .filter((s) => s.toLowerCase().includes(storeQuery.trim().toLowerCase()))
++                  .map((s) => {
++                    const checked = storeFilter.includes(s);
++                    return (
++                      <label
++                        key={s}
++                        className="flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-muted"
++                      >
++                        <input
++                          type="checkbox"
++                          checked={checked}
++                          onChange={() =>
++                            setStoreFilter((prev) =>
++                              checked ? prev.filter((x) => x !== s) : [...prev, s],
++                            )
++                          }
++                        />
++                        <span className="truncate">{s}</span>
++                      </label>
++                    );
++                  })}
++              </div>
++              {storeFilter.length > 0 && (
++                <button
++                  type="button"
++                  onClick={() => setStoreFilter([])}
++                  className="mt-2 w-full text-xs text-muted-foreground hover:text-foreground"
++                >
++                  Clear stores
++                </button>
++              )}
++            </PopoverContent>
++          </Popover>
+           <div className="flex items-center gap-1.5 h-9 bg-[#161d22] border border-white/10 rounded-lg px-2.5">
+             <CalendarIcon className="h-3.5 w-3.5 text-slate-400" />
+             <input
